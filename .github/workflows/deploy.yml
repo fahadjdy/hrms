@@ -85,6 +85,8 @@ jobs:
             .mcp.json
             CLAUDE.md
             AGENTS.md
+            README.md
+            docs/**
             boost.json
             skills-lock.json
             dev.bat
