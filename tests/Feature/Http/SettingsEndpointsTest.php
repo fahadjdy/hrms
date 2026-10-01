@@ -172,6 +172,28 @@ class SettingsEndpointsTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('action', 'work_shift.created')->exists());
     }
 
+    public function test_work_shift_saves_a_fixed_break_that_falls_inside_the_shift(): void
+    {
+        $company = $this->useCompany($this->createCompany());
+        $this->actingAs($this->adminOf($company));
+        $shift = ['start_time' => '09:00', 'end_time' => '18:00', 'required_minutes' => 480];
+
+        $this->post('/work-shifts', ['name' => 'Lunch Break', 'break_start' => '13:00', 'break_end' => '14:00', ...$shift])
+            ->assertSessionHasNoErrors();
+        $this->post('/work-shifts', ['name' => 'Outside', 'break_start' => '18:30', 'break_end' => '19:00', ...$shift])
+            ->assertSessionHasErrors('break_start');
+        $this->post('/work-shifts', ['name' => 'Too Long', 'break_start' => '13:00', 'break_end' => '15:00', ...$shift])
+            ->assertSessionHasErrors('required_minutes');
+        $this->post('/work-shifts', ['name' => 'Half', 'break_start' => '13:00', ...$shift])
+            ->assertSessionHasErrors('break_end');
+
+        $saved = WorkShift::query()->where('name', 'Lunch Break')->sole();
+        $this->assertSame('13:00:00', $saved->break_start);
+        $this->assertSame('14:00:00', $saved->break_end);
+        $this->assertSame(60, $saved->break_minutes);
+        $this->assertSame(0, WorkShift::query()->whereIn('name', ['Outside', 'Too Long', 'Half'])->count());
+    }
+
     public function test_renaming_a_work_shift_audits_only_what_changed(): void
     {
         $company = $this->useCompany($this->createCompany());

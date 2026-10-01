@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
-import { LogIn, Pencil } from '@lucide/vue';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { KeyRound, LogIn, Pencil } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import type { AdminCompany } from '@/components/admin/CompanyForm.vue';
+import CredentialsDialog from '@/components/admin/CredentialsDialog.vue';
+import type { CompanyCredentials } from '@/components/admin/CredentialsDialog.vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
@@ -87,6 +89,16 @@ const hasActiveUser = computed(() =>
 
 const statusChange = useConfirmedAction<AdminCompany>();
 
+/**
+ * The new Company Admin's login, flashed once right after the company is
+ * created. Kept while this page is open so it can be shown again.
+ */
+const credentials = ref<CompanyCredentials | null>(
+    (usePage().flash as { credentials?: CompanyCredentials }).credentials ??
+        null,
+);
+const showCredentials = ref(credentials.value !== null);
+
 const signingIn = ref(false);
 
 /** Sign in as the named user, or as the Company Admin when none is given. */
@@ -124,6 +136,14 @@ const userColumns: DataTableColumn[] = [
             <StatusBadge :tone="company.is_active ? 'positive' : 'neutral'">
                 {{ company.is_active ? 'Active' : 'Inactive' }}
             </StatusBadge>
+            <Button
+                v-if="credentials"
+                variant="outline"
+                @click="showCredentials = true"
+            >
+                <KeyRound />
+                Share login details
+            </Button>
             <Button variant="outline" as-child>
                 <Link :href="edit(company.id)">
                     <Pencil />
@@ -285,6 +305,12 @@ const userColumns: DataTableColumn[] = [
             </DataTable>
         </section>
     </div>
+
+    <CredentialsDialog
+        v-if="credentials"
+        v-model:open="showCredentials"
+        :credentials="credentials"
+    />
 
     <ConfirmDialog
         :open="statusChange.target.value !== null"

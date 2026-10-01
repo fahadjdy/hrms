@@ -97,11 +97,17 @@ class WorkingHoursCalculationService
         $out = WorkShift::timeToMinutes($checkOut);
         $span = $out >= $in ? $out - $in : $out + 1440 - $in;
 
-        // The unpaid break only applies once more than half of the shift was
-        // spent at work, so a short half-day visit is not reduced by it.
-        $break = $shift->break_minutes ?? 0;
-        $shiftSpan = $shift?->spanMinutes() ?? $required;
-        $worked = $span > intdiv($shiftSpan, 2) ? max(0, $span - $break) : $span;
+        if ($shift?->hasBreakTiming()) {
+            // A fixed break is deducted only for the part of it the employee
+            // was actually at work for.
+            $worked = max(0, $span - $shift->breakOverlapMinutes($checkIn, $checkOut));
+        } else {
+            // The unpaid break only applies once more than half of the shift was
+            // spent at work, so a short half-day visit is not reduced by it.
+            $break = $shift->break_minutes ?? 0;
+            $shiftSpan = $shift?->spanMinutes() ?? $required;
+            $worked = $span > intdiv($shiftSpan, 2) ? max(0, $span - $break) : $span;
+        }
 
         $short = max(0, $required - $worked);
 

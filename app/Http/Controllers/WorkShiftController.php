@@ -34,6 +34,8 @@ class WorkShiftController extends Controller
                 'name' => $shift->name,
                 'start_time' => substr($shift->start_time, 0, 5),
                 'end_time' => substr($shift->end_time, 0, 5),
+                'break_start' => $shift->break_start === null ? null : substr($shift->break_start, 0, 5),
+                'break_end' => $shift->break_end === null ? null : substr($shift->break_end, 0, 5),
                 'required_minutes' => $shift->required_minutes,
                 'break_minutes' => $shift->break_minutes,
                 'is_active' => $shift->is_active,
@@ -53,7 +55,7 @@ class WorkShiftController extends Controller
         $shift = WorkShift::query()->create($this->validated($request));
         $hours->flush();
 
-        $audit->log('work_shift.created', $shift, null, $shift->only(['name', 'start_time', 'end_time', 'required_minutes']), "Work shift {$shift->name} created");
+        $audit->log('work_shift.created', $shift, null, $shift->only(['name', 'start_time', 'end_time', 'break_start', 'break_end', 'required_minutes']), "Work shift {$shift->name} created");
         $this->toast('Work shift added.');
 
         return back();
@@ -93,7 +95,7 @@ class WorkShiftController extends Controller
             ]);
         }
 
-        $audit->log('work_shift.deleted', $workShift, $workShift->only(['name', 'start_time', 'end_time', 'required_minutes']), null, "Work shift {$workShift->name} deleted");
+        $audit->log('work_shift.deleted', $workShift, $workShift->only(['name', 'start_time', 'end_time', 'break_start', 'break_end', 'required_minutes']), null, "Work shift {$workShift->name} deleted");
         $workShift->delete();
         $hours->flush();
 
@@ -111,29 +113,50 @@ class WorkShiftController extends Controller
             'name' => ['required', 'string', 'max:255', TenantRule::unique('work_shifts', 'name')->ignore($shift?->id)],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'different:start_time'],
+            'break_start' => ['nullable', 'required_with:break_end', 'date_format:H:i'],
+            'break_end' => ['nullable', 'required_with:break_start', 'date_format:H:i', 'different:break_start'],
             'required_minutes' => ['required', 'integer', 'min:30', 'max:1440'],
             'is_active' => ['boolean'],
         ], [
             'required_minutes.min' => 'The required hours must be at least 30 minutes.',
+            'break_start.required_with' => 'Enter when the break starts, or clear both break times.',
+            'break_end.required_with' => 'Enter when the break ends, or clear both break times.',
+            'break_end.different' => 'The break must end after it starts.',
         ]);
 
         $start = WorkShift::timeToMinutes($validated['start_time']);
-        $end = WorkShift::timeToMinutes($validated['end_time']);
-        $span = $end > $start ? $end - $start : $end + 1440 - $start;
+        $span = WorkShift::minutesBetween($start, WorkShift::timeToMinutes($validated['end_time']));
+        $breakMinutes = null;
 
-        if ($validated['required_minutes'] > $span) {
+        if (isset($validated['break_start'], $validated['break_end'])) {
+            $breakStart = WorkShift::timeToMinutes($validated['break_start']);
+            $breakMinutes = WorkShift::minutesBetween($breakStart, WorkShift::timeToMinutes($validated['break_end']));
+
+            // Measured from the shift start, the whole break must end before the shift does.
+            if (WorkShift::minutesBetween($start, $breakStart) + $breakMinutes >= $span) {
+                throw ValidationException::withMessages([
+                    'break_start' => 'The break must fall between the start and end of the shift.',
+                ]);
+            }
+        }
+
+        if ($validated['required_minutes'] > $span - ($breakMinutes ?? 0)) {
             throw ValidationException::withMessages([
-                'required_minutes' => 'The required hours cannot be longer than the time between the start and end of the shift.',
+                'required_minutes' => $breakMinutes === null
+                    ? 'The required hours cannot be longer than the time between the start and end of the shift.'
+                    : 'The required hours cannot be longer than the shift less its break.',
             ]);
         }
 
-        // Whatever part of the shift is not required working time is the break.
-        $validated['break_minutes'] = $span - $validated['required_minutes'];
+        // Without fixed break times, whatever part of the shift is not
+        // required working time is the break.
+        $validated['break_minutes'] = $breakMinutes ?? $span - $validated['required_minutes'];
 
         // Times are stored with seconds; matching that format keeps an unchanged
         // time from being saved, and audited, as a change.
-        $validated['start_time'] .= ':00';
-        $validated['end_time'] .= ':00';
+        foreach (['start_time', 'end_time', 'break_start', 'break_end'] as $key) {
+            $validated[$key] = isset($validated[$key]) ? $validated[$key].':00' : null;
+        }
 
         return $validated;
     }

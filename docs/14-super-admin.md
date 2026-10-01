@@ -74,7 +74,11 @@ Neeche **Save platform settings** button.
 4. **Regional settings** mein **Currency**, **Timezone** aur **Date format** check karein. Ye Platform Settings ke default se pehle se bhare aate hain.
 5. **First Company Admin** hisse mein us vyakti ka **Name**, **Email** (isi se wo login karega) aur **Password** bharein.
 6. **Create company** dabayein.
-7. Company ka page khul jayega. Admin ko uska email aur password bata dein. Wo login ke baad apna password khud badal sakta hai.
+7. Company ka page khulte hi **Share login details** box aata hai. Isme **Login URL**, **Email** aur **Password** hain, har ek ke saath copy button.
+8. **Copy all details** dabayein. Poora message copy ho jata hai, use WhatsApp ya email me paste karke admin ko bhej dein.
+9. Box band ho jaye to page ke upar **Share login details** button se dobara khol sakte hain. Lekin page refresh karne ya kahin aur jaane ke baad password dobara nahi dikhta, kyunki wo kahin save nahi hota.
+
+Admin login ke baad apna password khud badal sakta hai.
 
 Nayi company ko ye sab apne aap mil jata hai, taaki wo turant kaam shuru kar sake:
 

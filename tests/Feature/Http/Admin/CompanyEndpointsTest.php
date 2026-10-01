@@ -49,6 +49,23 @@ class CompanyEndpointsTest extends TestCase
         $this->assertTrue(AuditLog::query()->where('action', 'company.created')->exists());
     }
 
+    public function test_creating_a_company_hands_the_admin_login_to_the_super_admin_once(): void
+    {
+        $superAdmin = User::factory()->superAdmin()->create();
+
+        $this->actingAs($superAdmin)->post('/admin/companies', $this->payload());
+        $company = Company::query()->where('name', 'Acme Technologies')->sole();
+
+        $this->get(route('admin.companies.show', $company))
+            ->assertInertia(fn (Assert $page) => $page
+                ->hasFlash('credentials.email', 'admin@acme.test')
+                ->hasFlash('credentials.password', 'secret-password')
+                ->hasFlash('credentials.login_url', route('login')));
+
+        $this->get(route('admin.companies.show', $company))
+            ->assertInertia(fn (Assert $page) => $page->missingFlash('credentials'));
+    }
+
     public function test_new_company_admin_can_sign_in_and_reach_the_dashboard(): void
     {
         $this->actingAs(User::factory()->superAdmin()->create())->post('/admin/companies', $this->payload());

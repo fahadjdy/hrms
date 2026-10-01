@@ -95,6 +95,16 @@ class CompanyController extends Controller
 
         $this->toast("Company {$company->name} created.");
 
+        // Shown once on the next page so the super admin can hand the login
+        // over; the plain password is never stored or shown again.
+        Inertia::flash('credentials', [
+            'company' => $company->name,
+            'name' => $data['admin_name'],
+            'login_url' => route('login'),
+            'email' => $data['admin_email'],
+            'password' => $data['admin_password'],
+        ]);
+
         return to_route('admin.companies.show', $company);
     }
 

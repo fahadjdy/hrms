@@ -7,6 +7,7 @@ use App\Services\EmployeeService;
 use App\Services\WorkingHoursCalculationService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\Concerns\InteractsWithCompanies;
 use Tests\TestCase;
 
@@ -91,6 +92,36 @@ class WorkingHoursCalculationServiceTest extends TestCase
         $this->assertSame(615, $result['worked_minutes']);
         $this->assertSame(135, $result['overtime_minutes']);
         $this->assertSame(0, $result['short_minutes']);
+    }
+
+    /**
+     * @return array<string, array{string, string, string, string, string, string, int}>
+     */
+    public static function fixedBreakDays(): array
+    {
+        return [
+            'full day loses the whole break' => ['09:00', '18:00', '13:00', '14:00', '09:00', '18:00', 480],
+            'leaving before the break loses none of it' => ['09:00', '18:00', '13:00', '14:00', '09:00', '13:00', 240],
+            'arriving during the break loses only the rest of it' => ['09:00', '18:00', '13:00', '14:00', '13:30', '18:00', 240],
+            'overnight shift and break' => ['22:00', '07:00', '02:00', '03:00', '22:00', '07:00', 480],
+        ];
+    }
+
+    #[DataProvider('fixedBreakDays')]
+    public function test_fixed_break_is_deducted_only_for_the_time_spent_at_work(
+        string $shiftStart,
+        string $shiftEnd,
+        string $breakStart,
+        string $breakEnd,
+        string $checkIn,
+        string $checkOut,
+        int $expectedWorked,
+    ): void {
+        $shift = WorkShift::factory()->timing($shiftStart, $shiftEnd, 480)->breakBetween($breakStart, $breakEnd)->make();
+
+        $result = $this->service()->calculate($shift, $checkIn, $checkOut);
+
+        $this->assertSame($expectedWorked, $result['worked_minutes']);
     }
 
     public function test_arrival_within_the_grace_period_is_not_late(): void

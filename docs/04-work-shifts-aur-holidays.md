@@ -65,7 +65,7 @@ Employee ki profile par **Work timing** card me ek chhota label bhi dikhta hai j
 | **Shift**              | Shift ka naam. Saath me label dikh sakta hai: **Company default**, **Male staff**, **Female staff**, **Other staff** — yani ye shift kiski default hai |
 | **Timing**             | Shuru aur khatam hone ka time, jaise 9:00 AM to 6:00 PM                                                                                                |
 | **Required hours**     | Din me kitna kaam zaroori hai, jaise 8h 00m                                                                                                            |
-| **Break**              | Bina salary wala break, jaise 1h 00m                                                                                                                   |
+| **Break**              | Bina salary wala break, jaise 1h 00m. Break ka time rakha ho to wo bhi dikhta hai, jaise 1:00 PM to 2:00 PM (1h 00m)                                   |
 | **Assigned employees** | Abhi kitne employees par ye shift alag se lagi hai                                                                                                     |
 | **Status**             | **Active** ya **Inactive**                                                                                                                             |
 
@@ -86,11 +86,29 @@ Upar daayi taraf **Add work shift** button hai. Har row ke saamne pencil (edit) 
     | **Shift name**            | Naam, jaise "Morning Shift". Ek naam do baar nahi ho sakta                     |
     | **Start time**            | Shift shuru hone ka time                                                       |
     | **End time**              | Shift khatam hone ka time                                                      |
+    | **Break time** (optional) | Break kab se kab tak, jaise 1:00 PM se 2:00 PM. Khali bhi chhod sakte hain     |
     | **Required working time** | **hours** aur **minutes** me — employee ko din me kitna kaam karna zaroori hai |
     | **Active**                | On rakhein agar shift use honi hai                                             |
 
-4. Neeche ek line apne aap hisaab dikhati hai, jaise: _9h 00m shift - 8h 00m required = 1h 00m break_. Yani shift ke total time me se zaroori kaam ghata kar jo bachta hai, wo **break** hai.
+4. Neeche ek line apne aap hisaab dikhati hai:
+    - Break time **khali** ho to: _9h 00m shift - 8h 00m required = 1h 00m break_. Yani shift ke total time me se zaroori kaam ghata kar jo bachta hai, wo **break** hai.
+    - Break time **bhara** ho to: _9h 00m shift - 1h 00m break = 8h 00m at work_. Required working time isse zyada nahi ho sakta.
 5. **Add work shift** dabayein.
+
+### Break ka time tay karna
+
+**Break time** me **From** aur **To** bharne se break ek tay samay par hota hai, jaise lunch 1:00 PM se 2:00 PM.
+
+- Break shift ke andar hona chahiye. Dono time bharein, ya dono khali chhodein.
+- Employee jitni der break ke samay office me tha, sirf utna hi uske kaam ke time se kat-ta hai:
+
+    | Employee kab aaya / gaya (shift 9 se 6, break 1 se 2) | Break kitna kata | Kaam ka time |
+    | ----------------------------------------------------- | ---------------- | ------------ |
+    | 9:00 AM se 6:00 PM                                    | 1 ghanta         | 8 ghante     |
+    | 9:00 AM se 1:00 PM (break se pehle chala gaya)        | Kuchh nahi       | 4 ghante     |
+    | 1:30 PM se 6:00 PM (break ke beech aaya)              | 30 minute        | 4 ghante     |
+
+- Break time **khali** ho to purana tarika chalta hai: shift ka bacha hua time break mana jata hai, aur wo tabhi kat-ta hai jab employee aadhi shift se zyada ruka ho.
 
 **Raat ki shift:** agar End time, Start time se pehle ka hai (jaise 10:00 PM se 6:00 AM), to system samajh leta hai ki shift aadhi raat ke baad khatam hoti hai.
 

@@ -44,4 +44,16 @@ class WorkShiftFactory extends Factory
             ];
         });
     }
+
+    /**
+     * A fixed break between the given times, e.g. 13:00 to 14:00.
+     */
+    public function breakBetween(string $start, string $end): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'break_start' => $start,
+            'break_end' => $end,
+            'break_minutes' => WorkShift::minutesBetween(WorkShift::timeToMinutes($start), WorkShift::timeToMinutes($end)),
+        ]);
+    }
 }

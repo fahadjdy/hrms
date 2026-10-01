@@ -36,6 +36,9 @@ type WorkShift = {
     name: string;
     start_time: string;
     end_time: string;
+    /** A fixed break, e.g. 13:00 to 14:00; null when the break is just the spare time. */
+    break_start: string | null;
+    break_end: string | null;
     required_minutes: number;
     break_minutes: number;
     is_active: boolean;
@@ -63,6 +66,8 @@ const { open, editingId, form, startCreate, startEdit, submit } =
         name: '',
         start_time: '09:00',
         end_time: '18:00',
+        break_start: null as string | null,
+        break_end: null as string | null,
         required_minutes: 480,
         is_active: true,
     }));
@@ -116,10 +121,25 @@ const spanMinutes = computed(() => {
     return end > start ? end - start : end + 1440 - start;
 });
 
+/** Length of the fixed break, when both of its times are filled in. */
+const fixedBreakMinutes = computed(() => {
+    const start = form.break_start ? toMinutes(form.break_start) : null;
+    const end = form.break_end ? toMinutes(form.break_end) : null;
+
+    if (start === null || end === null || start === end) {
+        return null;
+    }
+
+    return end > start ? end - start : end + 1440 - start;
+});
+
+/** Time left in the shift after the required hours (and the fixed break). */
 const breakMinutes = computed(() =>
     spanMinutes.value === null
         ? null
-        : spanMinutes.value - form.required_minutes,
+        : spanMinutes.value -
+          (fixedBreakMinutes.value ?? 0) -
+          form.required_minutes,
 );
 
 const save = () =>
@@ -167,7 +187,17 @@ const save = () =>
                 <span class="tabular">{{ minutes(row.required_minutes) }}</span>
             </template>
             <template #cell-break_minutes="{ row }">
-                <span class="tabular">{{ minutes(row.break_minutes) }}</span>
+                <span class="tabular whitespace-nowrap">
+                    <template v-if="row.break_start && row.break_end">
+                        {{ time(row.break_start) }} to {{ time(row.break_end) }}
+                        <span class="text-muted-foreground">
+                            ({{ minutes(row.break_minutes) }})
+                        </span>
+                    </template>
+                    <template v-else>
+                        {{ minutes(row.break_minutes) }}
+                    </template>
+                </span>
             </template>
             <template #cell-assigned_employees="{ row }">
                 <span class="tabular">{{ row.assigned_employees }}</span>
@@ -187,6 +217,8 @@ const save = () =>
                             name: row.name,
                             start_time: row.start_time,
                             end_time: row.end_time,
+                            break_start: row.break_start,
+                            break_end: row.break_end,
                             required_minutes: row.required_minutes,
                             is_active: row.is_active,
                         })
@@ -215,7 +247,8 @@ const save = () =>
                     </DialogTitle>
                     <DialogDescription>
                         Required hours are what an employee must work in the
-                        shift. The rest of the shift is the unpaid break.
+                        shift. Set break times for a fixed unpaid break;
+                        otherwise the rest of the shift is the break.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -265,6 +298,40 @@ const save = () =>
 
                 <fieldset class="grid gap-1.5">
                     <legend class="mb-1.5 text-sm leading-none font-medium">
+                        Break time
+                        <span class="font-normal text-muted-foreground">
+                            (optional)
+                        </span>
+                    </legend>
+                    <div class="grid grid-cols-2 gap-4">
+                        <DatePicker
+                            id="shift-break-start"
+                            v-model="form.break_start"
+                            mode="time"
+                            placeholder="From"
+                            aria-label="Break starts"
+                        />
+                        <DatePicker
+                            id="shift-break-end"
+                            v-model="form.break_end"
+                            mode="time"
+                            placeholder="To"
+                            aria-label="Break ends"
+                        />
+                    </div>
+                    <p class="text-xs text-muted-foreground">
+                        Only the part of the break an employee is at work for is
+                        taken off their worked time.
+                    </p>
+                    <InputError
+                        :message="
+                            form.errors.break_start ?? form.errors.break_end
+                        "
+                    />
+                </fieldset>
+
+                <fieldset class="grid gap-1.5">
+                    <legend class="mb-1.5 text-sm leading-none font-medium">
                         Required working time
                         <span class="text-negative" aria-hidden="true">*</span>
                     </legend>
@@ -308,15 +375,25 @@ const save = () =>
                                 : 'text-muted-foreground'
                         "
                     >
-                        <template v-if="breakMinutes >= 0">
+                        <template v-if="breakMinutes < 0">
+                            The shift is only
+                            {{ minutes(spanMinutes) }} long<template
+                                v-if="fixedBreakMinutes !== null"
+                                >, with a
+                                {{ minutes(fixedBreakMinutes) }} break</template
+                            >, so the required time cannot be
+                            {{ minutes(form.required_minutes) }}.
+                        </template>
+                        <template v-else-if="fixedBreakMinutes !== null">
+                            {{ minutes(spanMinutes) }} shift -
+                            {{ minutes(fixedBreakMinutes) }} break =
+                            {{ minutes(spanMinutes - fixedBreakMinutes) }} at
+                            work
+                        </template>
+                        <template v-else>
                             {{ minutes(spanMinutes) }} shift -
                             {{ minutes(form.required_minutes) }} required =
                             {{ minutes(breakMinutes) }} break
-                        </template>
-                        <template v-else>
-                            The shift is only {{ minutes(spanMinutes) }} long,
-                            so the required time cannot be
-                            {{ minutes(form.required_minutes) }}.
                         </template>
                     </p>
                     <InputError :message="form.errors.required_minutes" />
