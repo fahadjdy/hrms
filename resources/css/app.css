@@ -9,7 +9,7 @@
 
 @theme inline {
     --font-sans:
-        Instrument Sans, ui-sans-serif, system-ui, sans-serif,
+        'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif,
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
@@ -45,11 +45,29 @@
     --color-input: var(--input);
     --color-ring: var(--ring);
 
+    /*
+      Meaning colors, used the same way everywhere: positive (present, paid,
+      recovered), warning (pending, late, borrow owed), negative (absent,
+      deducted), info (leave, neutral facts). Each has a soft background.
+    */
+    --color-positive: var(--positive);
+    --color-positive-soft: var(--positive-soft);
+    --color-warning: var(--warning);
+    --color-warning-soft: var(--warning-soft);
+    --color-negative: var(--negative);
+    --color-negative-soft: var(--negative-soft);
+    --color-info: var(--info);
+    --color-info-soft: var(--info-soft);
+
+    /* Chart series: a colorblind-validated order. Assign in sequence, never cycle. */
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
     --color-chart-3: var(--chart-3);
     --color-chart-4: var(--chart-4);
     --color-chart-5: var(--chart-5);
+    --color-chart-6: var(--chart-6);
+    --color-chart-neutral: var(--chart-neutral);
+    --color-chart-grid: var(--chart-grid);
 
     --color-sidebar: var(--sidebar-background);
     --color-sidebar-foreground: var(--sidebar-foreground);
@@ -83,83 +101,116 @@
     body,
     html {
         --font-sans:
-            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif,
             'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
             'Noto Color Emoji';
     }
 }
 
+/*
+  Palette: ink on cool paper, with ledger green as the one brand color and a
+  deep green-ink sidebar. Marigold and vermilion are kept for warning and
+  negative meaning only.
+*/
 :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 3.9%);
-    --card: hsl(0 0% 100%);
-    --card-foreground: hsl(0 0% 3.9%);
-    --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(0 0% 3.9%);
-    --primary: hsl(0 0% 9%);
-    --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 92.1%);
-    --secondary-foreground: hsl(0 0% 9%);
-    --muted: hsl(0 0% 96.1%);
-    --muted-foreground: hsl(0 0% 45.1%);
-    --accent: hsl(0 0% 96.1%);
-    --accent-foreground: hsl(0 0% 9%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 92.8%);
-    --input: hsl(0 0% 89.8%);
-    --ring: hsl(0 0% 3.9%);
-    --chart-1: hsl(12 76% 61%);
-    --chart-2: hsl(173 58% 39%);
-    --chart-3: hsl(197 37% 24%);
-    --chart-4: hsl(43 74% 66%);
-    --chart-5: hsl(27 87% 67%);
+    --background: #f4f6f5;
+    --foreground: #14212b;
+    --card: #ffffff;
+    --card-foreground: #14212b;
+    --popover: #ffffff;
+    --popover-foreground: #14212b;
+    --primary: #0e6b57;
+    --primary-foreground: #ffffff;
+    --secondary: #e8edeb;
+    --secondary-foreground: #14212b;
+    --muted: #eef2f0;
+    --muted-foreground: #56636d;
+    --accent: #e4efec;
+    --accent-foreground: #0b4f41;
+    --destructive: #c03a2b;
+    --destructive-foreground: #ffffff;
+    --border: #dbe2df;
+    --input: #c6d0cc;
+    --ring: #0e6b57;
     --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(0 0% 10%);
-    --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 94%);
-    --sidebar-accent-foreground: hsl(0 0% 30%);
-    --sidebar-border: hsl(0 0% 91%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(0 0% 98%);
+
+    --positive: #14774b;
+    --positive-soft: #e2f3ea;
+    --warning: #92600a;
+    --warning-soft: #fbf0d6;
+    --negative: #b53324;
+    --negative-soft: #fbe8e5;
+    --info: #245f9f;
+    --info-soft: #e3eefb;
+
+    --chart-1: #2a78d6;
+    --chart-2: #eb6834;
+    --chart-3: #1baf7a;
+    --chart-4: #eda100;
+    --chart-5: #4a3aa7;
+    --chart-6: #e34948;
+    --chart-neutral: #898781;
+    --chart-grid: #e6ebe9;
+
+    --sidebar-background: #10231f;
+    --sidebar-foreground: #c9d6d2;
+    --sidebar-primary: #43b89c;
+    --sidebar-primary-foreground: #06201a;
+    --sidebar-accent: #1b3731;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1f3d36;
+    --sidebar-ring: #43b89c;
+    --sidebar: #10231f;
 }
 
 .dark {
-    --background: hsl(0 0% 3.9%);
-    --foreground: hsl(0 0% 98%);
-    --card: hsl(0 0% 3.9%);
-    --card-foreground: hsl(0 0% 98%);
-    --popover: hsl(0 0% 3.9%);
-    --popover-foreground: hsl(0 0% 98%);
-    --primary: hsl(0 0% 98%);
-    --primary-foreground: hsl(0 0% 9%);
-    --secondary: hsl(0 0% 14.9%);
-    --secondary-foreground: hsl(0 0% 98%);
-    --muted: hsl(0 0% 16.08%);
-    --muted-foreground: hsl(0 0% 63.9%);
-    --accent: hsl(0 0% 14.9%);
-    --accent-foreground: hsl(0 0% 98%);
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 14.9%);
-    --input: hsl(0 0% 14.9%);
-    --ring: hsl(0 0% 83.1%);
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar-background: hsl(0 0% 7%);
-    --sidebar-foreground: hsl(0 0% 95.9%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(0 0% 15.9%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(0 0% 15.9%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(240 5.9% 10%);
+    --background: #0d1415;
+    --foreground: #e6ecea;
+    --card: #151e20;
+    --card-foreground: #e6ecea;
+    --popover: #151e20;
+    --popover-foreground: #e6ecea;
+    --primary: #43b89c;
+    --primary-foreground: #06201a;
+    --secondary: #1d282a;
+    --secondary-foreground: #e6ecea;
+    --muted: #1a2426;
+    --muted-foreground: #96a4a1;
+    --accent: #18302b;
+    --accent-foreground: #cdeee4;
+    --destructive: #d9503f;
+    --destructive-foreground: #ffffff;
+    --border: #253235;
+    --input: #2f3e41;
+    --ring: #43b89c;
+
+    --positive: #5fcf99;
+    --positive-soft: #122c20;
+    --warning: #e8b85a;
+    --warning-soft: #30260f;
+    --negative: #f08273;
+    --negative-soft: #361815;
+    --info: #86b6ef;
+    --info-soft: #13253a;
+
+    --chart-1: #3987e5;
+    --chart-2: #d95926;
+    --chart-3: #199e70;
+    --chart-4: #c98500;
+    --chart-5: #9085e9;
+    --chart-6: #e66767;
+    --chart-neutral: #898781;
+    --chart-grid: #222e31;
+
+    --sidebar-background: #0a1011;
+    --sidebar-foreground: #c3d0cc;
+    --sidebar-primary: #43b89c;
+    --sidebar-primary-foreground: #06201a;
+    --sidebar-accent: #172325;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1c282a;
+    --sidebar-ring: #43b89c;
+    --sidebar: #0a1011;
 }
 
 @layer base {
@@ -168,5 +219,32 @@
     }
     body {
         @apply bg-background text-foreground;
+    }
+}
+
+@layer utilities {
+    /* Equal-width digits, for money and hours in columns that must line up. */
+    .tabular {
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+/*
+  The pay ledger: the one place the interface is allowed to look like an
+  accounting book. Amount columns align on the decimal, and the closing total
+  carries the bookkeeper's rule above it and double rule below.
+*/
+.ledger-total {
+    border-top: 1px solid var(--foreground);
+    border-bottom: 3px double var(--foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    ::before,
+    ::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
     }
 }

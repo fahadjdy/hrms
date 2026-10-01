@@ -2,6 +2,8 @@
 
 namespace Database\Factories;
 
+use App\Models\Company;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -25,6 +27,8 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            // Every user who is not the platform owner belongs to a company.
+            'company_id' => Company::factory(),
             'name' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
@@ -55,6 +59,39 @@ class UserFactory extends Factory
             'two_factor_secret' => encrypt('secret'),
             'two_factor_recovery_codes' => encrypt(json_encode(['recovery-code-1'])),
             'two_factor_confirmed_at' => now(),
+        ]);
+    }
+
+    /**
+     * The platform owner, who belongs to no company.
+     */
+    public function superAdmin(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_super_admin' => true,
+            'company_id' => null,
+            'role_id' => null,
+        ]);
+    }
+
+    /**
+     * A user of the given company, with the given role.
+     */
+    public function forCompany(Company $company, ?Role $role = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'company_id' => $company->id,
+            'role_id' => $role?->id,
+        ]);
+    }
+
+    /**
+     * Indicate that the user has been deactivated.
+     */
+    public function inactive(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_active' => false,
         ]);
     }
 }

@@ -1,0 +1,29 @@
+{
+    "version": 1,
+    "skills": {
+        "create-adaptable-composable": {
+            "source": "vuejs-ai/skills",
+            "sourceType": "github",
+            "skillPath": "skills/create-adaptable-composable/SKILL.md",
+            "computedHash": "3d044f8c43ddaee6a58ab28acc9d6315775aed150c3a9ab059d2714768be5bec"
+        },
+        "frontend-design": {
+            "source": "anthropics/skills",
+            "sourceType": "github",
+            "skillPath": "skills/frontend-design/SKILL.md",
+            "computedHash": "106acf230014cbb43ca34e6410371321b56ca742f9ee0442e8ec05bf02eb0384"
+        },
+        "vue-best-practices": {
+            "source": "vuejs-ai/skills",
+            "sourceType": "github",
+            "skillPath": "skills/vue-best-practices/SKILL.md",
+            "computedHash": "21132f6c11c765bd11d0d6ad081122dd858630073e2123b651e58f17b399b131"
+        },
+        "vue-debug-guides": {
+            "source": "vuejs-ai/skills",
+            "sourceType": "github",
+            "skillPath": "skills/vue-debug-guides/SKILL.md",
+            "computedHash": "58bb2ad9e92dce0c15b42acc65aeec1dd93bc36f9db96ab248e52b1d22945472"
+        }
+    }
+}

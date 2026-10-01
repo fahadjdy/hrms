@@ -5,6 +5,9 @@ export type User = {
     avatar?: string;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
+    is_super_admin: boolean;
+    role: string | null;
+    permissions: string[];
     created_at: string;
     updated_at: string;
     [key: string]: unknown;
@@ -12,6 +15,17 @@ export type User = {
 
 export type Auth = {
     user: User;
+    impersonating: boolean;
+};
+
+/** The company (tenant) the signed-in user works for; null for the super admin. */
+export type Company = {
+    id: number;
+    name: string;
+    logo_url: string | null;
+    currency: string;
+    timezone: string;
+    date_format: string;
 };
 
 export type Passkey = {

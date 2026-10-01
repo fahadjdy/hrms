@@ -161,7 +161,8 @@ return [
     */
 
     'features' => [
-        Features::registration(),
+        // Public registration is off: accounts are created by the Super Admin
+        // (company admins) or by a Company Admin (HR users).
         Features::resetPasswords(),
         Features::emailVerification(),
         Features::twoFactorAuthentication([

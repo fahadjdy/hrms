@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\RateLimiter;
@@ -30,6 +31,68 @@ class AuthenticationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_super_admin_can_authenticate_and_lands_in_the_platform_area()
+    {
+        $user = User::factory()->superAdmin()->create();
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticatedAs($user);
+        $this->get(route('dashboard'))->assertRedirect(route('admin.companies.index'));
+    }
+
+    public function test_deactivated_users_can_not_authenticate()
+    {
+        $user = User::factory()->inactive()->create();
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_users_of_a_deactivated_company_can_not_authenticate()
+    {
+        $user = User::factory()->for(Company::factory()->inactive())->create();
+
+        $this->post(route('login.store'), [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
+    public function test_user_deactivated_while_signed_in_is_signed_out_on_the_next_request()
+    {
+        $user = User::factory()->create();
+        $this->actingAs($user);
+        $user->forceFill(['is_active' => false])->save();
+
+        $response = $this->get(route('dashboard'));
+
+        $response->assertRedirect(route('login'));
+        $this->assertGuest();
+    }
+
+    public function test_registration_is_not_available()
+    {
+        $this->get('/register')->assertNotFound();
+        $this->post('/register', [
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ])->assertNotFound();
+
+        $this->assertDatabaseMissing('users', ['email' => 'test@example.com']);
     }
 
     public function test_users_with_two_factor_enabled_are_redirected_to_two_factor_challenge()
