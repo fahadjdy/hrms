@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Building2,
     CalendarCheck,
@@ -14,18 +14,17 @@ import {
     Users,
     Wallet,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, onUnmounted } from 'vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavMain from '@/components/NavMain.vue';
-import NavUser from '@/components/NavUser.vue';
 import {
     Sidebar,
     SidebarContent,
-    SidebarFooter,
     SidebarHeader,
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { usePermissions } from '@/composables/usePermissions';
 import { dashboard } from '@/routes';
@@ -318,6 +317,13 @@ const groups = computed<NavGroup[]>(() => {
 const home = computed(() =>
     isSuperAdmin.value ? adminCompanies() : dashboard(),
 );
+
+// On a phone the sidebar is a drawer over the page: once the chosen page has
+// loaded, close it so the page is what the user sees.
+const { setOpenMobile } = useSidebar();
+const stopClosingOnNavigate = router.on('navigate', () => setOpenMobile(false));
+
+onUnmounted(stopClosingOnNavigate);
 </script>
 
 <template>
@@ -337,10 +343,6 @@ const home = computed(() =>
         <SidebarContent>
             <NavMain :groups="groups" />
         </SidebarContent>
-
-        <SidebarFooter>
-            <NavUser />
-        </SidebarFooter>
     </Sidebar>
     <slot />
 </template>

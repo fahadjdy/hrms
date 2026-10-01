@@ -7,8 +7,9 @@ Yaad rakhein: ye system sirf Admin aur HR ke liye hai. Employees ka koi login na
 ## Kahan milega
 
 - **Login screen**: aapki company ka HRMS address browser me kholte hi sabse pehle yahi screen aati hai.
-- **Apni settings**: login ke baad left menu (sidebar) me sabse neeche apne naam par click karein, phir **Settings** chunein. Andar teen hisse hain: **Profile**, **Security** aur **Appearance**.
-- **Log out**: usi jagah, apne naam par click karke **Log out**.
+- **Apni settings**: login ke baad upar right corner me apni photo (ya naam ke pehle akshar wale gol nishan) par click karein. Menu me **Profile** aur **Security** milte hain.
+- **Light / dark mode**: upar right me, apni photo ke theek pehle, suraj / chaand wala button.
+- **Log out**: usi photo par click karke **Log out**.
 
 ## Kaun use kar sakta hai
 
@@ -40,8 +41,8 @@ Kuch aur baatein:
 
 ### Login ke baad
 
-- **Left side me menu (sidebar)**: sabse upar logo, beech me saare modules, sabse neeche aapka naam.
-- **Upar ki patti**: sabse left me ek chhota button jo menu ko chhota / bada karta hai, aur uske baad likha hota hai ki aap abhi kis page par hain.
+- **Left side me menu (sidebar)**: sabse upar logo, uske neeche saare modules.
+- **Upar ki patti**: sabse left me ek chhota button jo menu ko chhota / bada karta hai, aur uske baad likha hota hai ki aap abhi kis page par hain. Sabse right me do cheezein hain: light / dark mode ka button, aur aapki photo. Photo par click karne se **Profile**, **Security** aur **Log out** ka menu khulta hai.
 - **Beech me page**: jo module aapne khola hai.
 
 Menu me jis heading ke saath teer (arrow) bana hai, us par click karne se uske andar ke pages khulte hain.
@@ -85,16 +86,24 @@ Email na aaye to spam folder dekhein. Phir bhi na mile to apne Company Admin se 
 
 ### Apna naam ya email badalna
 
-1. Menu me neeche apne naam par click karein, phir **Settings**.
-2. **Profile** kholein.
-3. **Name** ya **Email address** badlein.
-4. **Save** dabayein.
+1. Upar right corner me apni photo par click karein, phir **Profile** chunein.
+2. **Name** ya **Email address** badlein.
+3. **Save** dabayein.
 
 Email badalne par system naye email par ek verification email bhej sakta hai. Us email me diye link par click karke email verify kar lein.
 
+### Apni photo lagana ya badalna
+
+1. Upar right corner me apni photo par click karein, phir **Profile** chunein.
+2. **Profile photo** hisse me **Upload photo** dabayein (photo pehle se lagi ho to button par **Change photo** likha hota hai).
+3. Apne computer ya phone se photo chunein. JPG, PNG ya WebP chalti hai, 2 MB tak.
+4. Photo chunte hi apne aap lag jaati hai aur upar right corner me bhi dikhne lagti hai.
+
+Photo hatani ho to **Remove** dabayein. Photo na ho to aapke naam ke pehle akshar dikhte hain.
+
 ### Password badalna
 
-1. **Settings** me **Security** kholein.
+1. Upar right corner me apni photo par click karein, phir **Security** chunein.
 2. **Update password** hisse me **Current password** me purana password likhein.
 3. **New password** aur **Confirm password** me naya password likhein.
 4. **Save** dabayein.
@@ -103,7 +112,7 @@ Email badalne par system naye email par ek verification email bhej sakta hai. Us
 
 2FA on karne ke baad login ke waqt password ke saath phone ke authenticator app ka 6 ank ka code bhi maanga jata hai. Isse account zyada surakshit rehta hai.
 
-1. **Settings** me **Security** kholein aur **Two-factor authentication** hisse tak jayein.
+1. Apni photo par click karke **Security** kholein aur **Two-factor authentication** hisse tak jayein.
 2. **Enable 2FA** dabayein. System ek baar aapka password dobara pooch sakta hai.
 3. Screen par ek QR code aayega. Apne phone ke authenticator app se use scan karein. Scan na ho to "or, enter the code manually" ke neeche diya code app me haath se daal dein.
 4. **Continue** dabayein.
@@ -122,7 +131,7 @@ Band karna ho to usi jagah **Disable 2FA** dabayein.
 
 Passkey ka matlab hai apne phone ya computer ke fingerprint, face ya PIN se login karna.
 
-1. **Settings** me **Security** kholein aur **Passkeys** hisse tak jayein.
+1. Apni photo par click karke **Security** kholein aur **Passkeys** hisse tak jayein.
 2. **Add passkey** dabayein.
 3. **Passkey name** me pehchaan ke liye naam likhein (jaise "Office laptop") aur **Register passkey** dabayein.
 4. Apne device par fingerprint / face / PIN se confirm karein.
@@ -130,12 +139,14 @@ Passkey ka matlab hai apne phone ya computer ke fingerprint, face ya PIN se logi
 
 ### Screen ka look badalna (light / dark)
 
-1. **Settings** me **Appearance** kholein.
-2. **Light**, **Dark** ya **System** me se ek chunein. **System** ka matlab hai jaisa aapke computer ya phone me set hai waisa.
+1. Upar ki patti me right side par, apni photo ke theek pehle, suraj / chaand wala button dabayein.
+2. Ek baar dabane par screen dark ho jaati hai, dobara dabane par light. Aapki pasand yaad rakhi jaati hai.
+
+Agar aap chahte hain ki screen aapke computer ya phone ki setting ke hisaab se apne aap badle, to **Profile** page ke left me **Appearance** kholein aur **System** chunein.
 
 ### Log out karna
 
-1. Menu me sabse neeche apne naam par click karein.
+1. Upar right corner me apni photo par click karein.
 2. **Log out** chunein.
 
 ### Menu ko chhota ya bada karna
@@ -160,7 +171,7 @@ Usi company ke Vivek Anand ka role Viewer hai. Wo wahi pages khol kar dekh sakte
 - Aap jo bhi badlav karte hain (attendance, salary, borrow, payroll), wo aapke naam ke saath **Audit Logs** me darj hota hai.
 - Apna account aap khud delete nahi kar sakte. Zaroorat ho to Company Admin use inactive karta hai.
 
-**Phone par:** menu chhupa rehta hai. Upar left wale button par tap karne se menu khulta hai, aur kisi page par tap karte hi band ho jata hai. Lambi tables phone par cards ban jaati hain, yaani har row ek alag dabba, taaki side me scroll na karna pade.
+**Phone par:** menu chhupa rehta hai. Upar left wale button par tap karne se menu khulta hai. Kisi page par tap karne ke baad, jaise hi wo page khul jata hai, menu apne aap band ho jata hai. Lambi tables phone par cards ban jaati hain, yaani har row ek alag dabba, taaki side me scroll na karna pade.
 
 ## Aksar pooche jane wale sawal
 

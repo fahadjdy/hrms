@@ -4,6 +4,7 @@ namespace Tests\Feature\Settings;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
 
 class ProfileUpdateTest extends TestCase
@@ -19,6 +20,24 @@ class ProfileUpdateTest extends TestCase
             ->get(route('profile.edit'));
 
         $response->assertOk();
+    }
+
+    public function test_profile_page_shows_the_users_own_company()
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertInertia(
+            fn (Assert $page) => $page->where('company.name', $user->company->name),
+        );
+    }
+
+    public function test_profile_page_has_no_company_for_the_super_admin()
+    {
+        $user = User::factory()->superAdmin()->create();
+
+        $this->actingAs($user)->get(route('profile.edit'))->assertInertia(
+            fn (Assert $page) => $page->where('company', null),
+        );
     }
 
     public function test_profile_information_can_be_updated()

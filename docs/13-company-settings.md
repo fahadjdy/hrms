@@ -275,7 +275,7 @@ Deactivated user dobara login nahi kar sakta. Agar wo us waqt login hai to agli 
 
 ### Apna khud ka password badalna
 
-Left menu mein sabse neeche apne naam par click karein → **Settings** → **Security**. Dekhein [Shuruaat aur Login](01-shuruaat-aur-login.md).
+Upar right corner mein apni photo par click karein → **Security**. Dekhein [Shuruaat aur Login](01-shuruaat-aur-login.md).
 
 ## Example
 

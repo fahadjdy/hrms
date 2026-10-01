@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
@@ -24,6 +25,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property int|null $role_id
  * @property string $name
  * @property string $email
+ * @property string|null $avatar_path
  * @property CarbonInterface|null $email_verified_at
  * @property string $password
  * @property bool $is_super_admin
@@ -68,6 +70,14 @@ class User extends Authenticatable implements MustVerifyEmail, PasskeyUser
             'is_super_admin' => 'boolean',
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * The public address of the profile photo, when one was uploaded.
+     */
+    public function avatarUrl(): ?string
+    {
+        return $this->avatar_path ? Storage::disk('public')->url($this->avatar_path) : null;
     }
 
     /**

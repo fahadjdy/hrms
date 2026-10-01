@@ -37,7 +37,9 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $company = app(TenantContext::class)->company();
+        // Personal pages such as the profile sit outside the company routes, so
+        // the tenant is not set there; the user's own company still applies.
+        $company = app(TenantContext::class)->company() ?? $user?->company;
 
         return [
             ...parent::share($request),
@@ -45,6 +47,7 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $user === null ? null : [
                     ...$user->only(['id', 'name', 'email', 'email_verified_at', 'created_at', 'updated_at']),
+                    'avatar' => $user->avatarUrl(),
                     'is_super_admin' => $user->is_super_admin,
                     'role' => $user->company_id !== null ? $user->role?->name : null,
                     'permissions' => $user->permissionList(),

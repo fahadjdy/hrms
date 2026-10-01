@@ -2,7 +2,8 @@ export type User = {
     id: number;
     name: string;
     email: string;
-    avatar?: string;
+    /** Address of the uploaded profile photo; null shows the initials instead. */
+    avatar: string | null;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     is_super_admin: boolean;

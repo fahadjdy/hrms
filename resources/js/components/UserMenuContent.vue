@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { LogOut, Settings } from '@lucide/vue';
+import { LogOut, ShieldCheck, UserRound } from '@lucide/vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -9,7 +9,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import { logout } from '@/routes';
-import { edit } from '@/routes/profile';
+import { edit as editProfile } from '@/routes/profile';
+import { edit as editSecurity } from '@/routes/security';
 import type { User } from '@/types';
 
 type Props = {
@@ -32,9 +33,19 @@ defineProps<Props>();
     <DropdownMenuSeparator />
     <DropdownMenuGroup>
         <DropdownMenuItem :as-child="true">
-            <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
-                <Settings class="mr-2 h-4 w-4" />
-                Settings
+            <Link
+                class="block w-full cursor-pointer"
+                :href="editProfile()"
+                prefetch
+            >
+                <UserRound class="mr-2 h-4 w-4" />
+                Profile
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem :as-child="true">
+            <Link class="block w-full cursor-pointer" :href="editSecurity()">
+                <ShieldCheck class="mr-2 h-4 w-4" />
+                Security
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

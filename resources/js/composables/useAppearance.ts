@@ -8,6 +8,7 @@ export type UseAppearanceReturn = {
     appearance: Ref<Appearance>;
     resolvedAppearance: ComputedRef<ResolvedAppearance>;
     updateAppearance: (value: Appearance) => void;
+    toggleAppearance: () => void;
 };
 
 export function updateTheme(value: Appearance): void {
@@ -116,9 +117,17 @@ export function useAppearance(): UseAppearanceReturn {
         updateTheme(value);
     }
 
+    /** Switch to the opposite of what is on screen now, whatever chose it. */
+    function toggleAppearance() {
+        const isDark = document.documentElement.classList.contains('dark');
+
+        updateAppearance(isDark ? 'light' : 'dark');
+    }
+
     return {
         appearance,
         resolvedAppearance,
         updateAppearance,
+        toggleAppearance,
     };
 }
