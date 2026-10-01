@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Table2, ChartNoAxesColumn } from '@lucide/vue';
+import type { Component } from 'vue';
 import { ref } from 'vue';
 import EmptyState from '@/components/EmptyState.vue';
 import SectionCard from '@/components/SectionCard.vue';
@@ -21,6 +22,7 @@ export type ChartTable = {
 defineProps<{
     title: string;
     description?: string;
+    icon?: Component;
     /** Shown for two or more series. A single series is named by the title. */
     legend?: ChartLegendItem[];
     /** The same data as a table, for anyone who cannot or would rather not read the chart. */
@@ -34,7 +36,7 @@ const showTable = ref(false);
 </script>
 
 <template>
-    <SectionCard :title="title" :description="description">
+    <SectionCard :title="title" :description="description" :icon="icon">
         <template v-if="table && !empty" #actions>
             <Button
                 variant="ghost"

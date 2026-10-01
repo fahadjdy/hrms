@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import { Button } from '@/components/ui/button';
@@ -126,10 +127,10 @@ function clearRecord(): void {
                         for="mark-check-in"
                         :error="form.errors.check_in"
                     >
-                        <Input
+                        <DatePicker
                             id="mark-check-in"
                             v-model="form.check_in"
-                            type="time"
+                            mode="time"
                         />
                     </FormField>
                     <FormField
@@ -137,10 +138,10 @@ function clearRecord(): void {
                         for="mark-check-out"
                         :error="form.errors.check_out"
                     >
-                        <Input
+                        <DatePicker
                             id="mark-check-out"
                             v-model="form.check_out"
-                            type="time"
+                            mode="time"
                         />
                     </FormField>
                 </div>

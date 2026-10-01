@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import StatusBadge from '@/components/StatusBadge.vue';
@@ -17,7 +18,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useFormat } from '@/composables/useFormat';
@@ -212,10 +212,10 @@ const columns: DataTableColumn[] = [
                     :error="form.errors.month"
                     required
                 >
-                    <Input
+                    <DatePicker
                         id="payroll-month"
                         v-model="form.month"
-                        type="month"
+                        mode="month"
                         required
                     />
                 </FormField>

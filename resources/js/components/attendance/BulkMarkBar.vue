@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import type { AttendanceStatusOption } from '@/types';
 
@@ -59,11 +59,19 @@ function apply(): void {
             </label>
             <label class="grid gap-1">
                 <span class="text-xs text-muted-foreground">Check in</span>
-                <Input v-model="checkIn" type="time" class="bg-background" />
+                <DatePicker
+                    v-model="checkIn"
+                    mode="time"
+                    class="bg-background"
+                />
             </label>
             <label class="grid gap-1">
                 <span class="text-xs text-muted-foreground">Check out</span>
-                <Input v-model="checkOut" type="time" class="bg-background" />
+                <DatePicker
+                    v-model="checkOut"
+                    mode="time"
+                    class="bg-background"
+                />
             </label>
         </div>
         <div class="flex gap-2">

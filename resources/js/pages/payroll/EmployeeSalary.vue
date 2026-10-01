@@ -2,6 +2,7 @@
 import { Head, Link, setLayoutProps, useForm } from '@inertiajs/vue3';
 import { ArrowRight, History, TrendingUp } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import EmployeeCell from '@/components/EmployeeCell.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import FormField from '@/components/FormField.vue';
@@ -503,10 +504,9 @@ const changePercent = (revision: Revision): string | null =>
                         :hint="`On or after the joining date, ${date(employee.joining_date)}`"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="revision-effective-date"
                             v-model="form.effective_date"
-                            type="date"
                             :min="employee.joining_date"
                             required
                         />

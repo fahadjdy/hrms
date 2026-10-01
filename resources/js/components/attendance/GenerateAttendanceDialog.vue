@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -11,7 +12,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/attendance/generate';
 
@@ -79,10 +79,9 @@ function generate(): void {
                         :error="form.errors.start_date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="generate-start"
                             v-model="form.start_date"
-                            type="date"
                             :max="today"
                             required
                         />
@@ -93,10 +92,9 @@ function generate(): void {
                         :error="form.errors.end_date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="generate-end"
                             v-model="form.end_date"
-                            type="date"
                             :min="form.start_date"
                             :max="today"
                             required

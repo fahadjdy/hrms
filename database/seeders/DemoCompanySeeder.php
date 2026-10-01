@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\DesignationChangeType;
 use App\Enums\PayrollBucket;
 use App\Models\Company;
 use App\Models\Department;
@@ -20,6 +21,7 @@ use App\Models\WeeklyHoliday;
 use App\Models\WorkShift;
 use App\Services\BorrowCalculationService;
 use App\Services\CompanyProvisioner;
+use App\Services\DesignationChangeService;
 use App\Services\EmployeeService;
 use App\Services\FinalSettlementService;
 use App\Services\LeaveService;
@@ -79,6 +81,7 @@ class DemoCompanySeeder extends Seeder
         private readonly TenantContext $tenant,
         private readonly CompanyProvisioner $provisioner,
         private readonly EmployeeService $employeeService,
+        private readonly DesignationChangeService $designationChanges,
         private readonly SalaryRevisionService $salaries,
         private readonly BorrowCalculationService $borrowService,
         private readonly LeaveService $leaves,
@@ -119,6 +122,7 @@ class DemoCompanySeeder extends Seeder
 
             $this->configureCompany($company);
             $this->createEmployees();
+            $this->promoteEmployees();
             $this->reviseSalaries();
             $this->seedAttendanceHistory();
             $this->seedLeaves();
@@ -224,7 +228,7 @@ class DemoCompanySeeder extends Seeder
         // code, first, last, gender, department, designation, type, status, joining, basic, HRA, allowance, professional tax, manager
         $definitions = [
             ['EMP-0002', 'Priya', 'Nair', 'female', 'Engineering', 'Engineering Manager', 'full_time', 'active', $this->month(52, 4), 78000, 22000, 10000, true, null],
-            ['EMP-0009', 'Vikram', 'Singh', 'male', 'Sales', 'Sales Manager', 'full_time', 'active', $this->month(44, 12), 62000, 18000, 8000, true, null],
+            ['EMP-0009', 'Vikram', 'Singh', 'male', 'Sales', 'Sales Executive', 'full_time', 'active', $this->month(44, 12), 62000, 18000, 8000, true, null],
             ['EMP-0014', 'Meera', 'Joshi', 'female', 'Human Resources', 'HR Executive', 'full_time', 'active', $this->month(36, 1), 38000, 10000, 4000, false, null],
             ['EMP-0016', 'Lakshmi', 'Rao', 'female', 'Finance', 'Accountant', 'full_time', 'active', $this->month(48, 15), 45000, 12000, 5000, true, null],
             ['EMP-0022', 'Ritu', 'Agarwal', 'female', 'Customer Support', 'Support Executive', 'full_time', 'active', $this->month(30, 8), 26000, 7000, 2500, false, null],
@@ -234,14 +238,14 @@ class DemoCompanySeeder extends Seeder
             ['EMP-0003', 'Amit', 'Verma', 'male', 'Engineering', 'Software Engineer', 'full_time', 'active', $this->month(26, 3), 42000, 12000, 4000, false, 'EMP-0002'],
             ['EMP-0004', 'Sneha', 'Iyer', 'female', 'Engineering', 'QA Engineer', 'full_time', 'active', $this->month(19, 10), 36000, 10000, 3000, false, 'EMP-0002'],
             ['EMP-0005', 'Karthik', 'Reddy', 'male', 'Engineering', 'Software Engineer', 'full_time', 'active', $this->month(9, 2), 40000, 11000, 3000, false, 'EMP-0002'],
-            ['EMP-0006', 'Neha', 'Gupta', 'female', 'Engineering', 'Senior Software Engineer', 'full_time', 'active', $this->month(33, 18), 58000, 16000, 6000, true, 'EMP-0002'],
+            ['EMP-0006', 'Neha', 'Gupta', 'female', 'Engineering', 'Software Engineer', 'full_time', 'active', $this->month(33, 18), 58000, 16000, 6000, true, 'EMP-0002'],
             ['EMP-0007', 'Arjun', 'Mehta', 'male', 'Engineering', 'Software Engineer', 'full_time', 'probation', $this->month(3, 6), 30000, 8000, 2000, false, 'EMP-0002'],
             ['EMP-0008', 'Divya', 'Menon', 'female', 'Engineering', 'QA Engineer', 'full_time', 'probation', $this->month(2, 3), 28000, 7000, 2000, false, 'EMP-0002'],
             ['EMP-0010', 'Pooja', 'Desai', 'female', 'Sales', 'Sales Executive', 'full_time', 'active', $this->month(15, 5), 30000, 8000, 3000, false, 'EMP-0009'],
             ['EMP-0011', 'Rohan', 'Kapoor', 'male', 'Sales', 'Sales Executive', 'full_time', 'active', $this->month(7, 11), 28000, 7500, 2500, false, 'EMP-0009'],
             ['EMP-0012', 'Ananya', 'Bose', 'female', 'Sales', 'Sales Executive', 'full_time', 'active', $this->month(1, 1), 27000, 7000, 2000, false, 'EMP-0009'],
             ['EMP-0013', 'Suresh', 'Pillai', 'male', 'Sales', 'Sales Executive', 'full_time', 'notice', $this->month(28, 22), 32000, 8500, 3000, false, 'EMP-0009'],
-            ['EMP-0015', 'Farhan', 'Khan', 'male', 'Human Resources', 'HR Executive', 'full_time', 'active', $this->month(11, 7), 33000, 9000, 3000, false, 'EMP-0014'],
+            ['EMP-0015', 'Farhan', 'Khan', 'male', 'Human Resources', 'Support Executive', 'full_time', 'active', $this->month(11, 7), 33000, 9000, 3000, false, 'EMP-0014'],
             ['EMP-0017', 'Manoj', 'Tiwari', 'male', 'Finance', 'Accountant', 'full_time', 'active', $this->month(22, 14), 36000, 9500, 3500, false, 'EMP-0016'],
             ['EMP-0018', 'Kavita', 'Chawla', 'female', 'Finance', 'Accountant', 'contract', 'active', $this->month(5, 9), 31000, 8000, 2500, false, 'EMP-0016'],
             ['EMP-0019', 'Imran', 'Sheikh', 'male', 'Customer Support', 'Support Executive', 'part_time', 'active', $this->month(17, 2), 14000, 3000, 1000, false, 'EMP-0022'],
@@ -312,6 +316,35 @@ class DemoCompanySeeder extends Seeder
                 'salary_components' => $this->components($basic, $hra, $allowance, $tax, $factor),
                 'existing_borrow' => $existingBorrows[$code] ?? null,
             ], null, $this->admin));
+        }
+    }
+
+    /**
+     * Designation changes over the years: two promotions and one move
+     * between departments' roles. The edit-form path is covered elsewhere.
+     */
+    private function promoteEmployees(): void
+    {
+        $designations = Designation::query()->pluck('id', 'name');
+
+        // employee, new designation, type, months back, day, reason
+        $changes = [
+            ['EMP-0009', 'Sales Manager', DesignationChangeType::Promotion, 20, 1, 'Took over the sales team after the regional restructure'],
+            ['EMP-0006', 'Senior Software Engineer', DesignationChangeType::Promotion, 14, 1, 'Annual review: led the billing platform rewrite'],
+            ['EMP-0015', 'HR Executive', DesignationChangeType::Change, 5, 1, 'Moved from customer support to the HR team'],
+        ];
+
+        foreach ($changes as [$code, $designation, $type, $monthsBack, $day, $reason]) {
+            $effective = $this->month($monthsBack, $day);
+
+            $this->at($effective, fn () => $this->designationChanges->change(
+                $this->employees[$code],
+                Designation::query()->findOrFail((int) $designations[$designation]),
+                $effective,
+                $type,
+                $reason,
+                $this->admin,
+            ));
         }
     }
 

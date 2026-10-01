@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DashboardFilters, DashboardOptions } from '@/types';
 
@@ -43,7 +43,7 @@ function update(): void {
 <template>
     <!-- One filter row above everything it scopes: every widget below reads the same slice. -->
     <form
-        class="grid gap-3 rounded-lg border bg-card p-3 sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]"
+        class="grid gap-3 rounded-xl border bg-card p-3 shadow-xs sm:grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]"
         aria-label="Dashboard filters"
         @submit.prevent="update"
     >
@@ -64,24 +64,24 @@ function update(): void {
                 <Label for="dash-from" class="text-xs text-muted-foreground">
                     From
                 </Label>
-                <Input
+                <DatePicker
                     id="dash-from"
                     v-model="state.from"
-                    type="date"
                     :max="state.to"
-                    @change="update"
+                    required
+                    @update:model-value="update"
                 />
             </div>
             <div class="grid gap-1">
                 <Label for="dash-to" class="text-xs text-muted-foreground">
                     To
                 </Label>
-                <Input
+                <DatePicker
                     id="dash-to"
                     v-model="state.to"
-                    type="date"
                     :min="state.from"
-                    @change="update"
+                    required
+                    @update:model-value="update"
                 />
             </div>
         </template>

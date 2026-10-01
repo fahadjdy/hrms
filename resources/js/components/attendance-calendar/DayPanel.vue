@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import { Button } from '@/components/ui/button';
@@ -278,10 +279,10 @@ function clear(): void {
                                 for="day-check-in"
                                 :error="form.errors.check_in"
                             >
-                                <Input
+                                <DatePicker
                                     id="day-check-in"
                                     v-model="form.check_in"
-                                    type="time"
+                                    mode="time"
                                 />
                             </FormField>
                             <FormField
@@ -289,10 +290,10 @@ function clear(): void {
                                 for="day-check-out"
                                 :error="form.errors.check_out"
                             >
-                                <Input
+                                <DatePicker
                                     id="day-check-out"
                                     v-model="form.check_out"
-                                    type="time"
+                                    mode="time"
                                 />
                             </FormField>
                             <p

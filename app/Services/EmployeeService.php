@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\DesignationChangeType;
 use App\Enums\EmployeeStatus;
 use App\Enums\ExitType;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeShiftAssignment;
 use App\Models\User;
@@ -30,6 +32,7 @@ class EmployeeService
     public function __construct(
         private readonly SalaryRevisionService $salaries,
         private readonly BorrowCalculationService $borrows,
+        private readonly DesignationChangeService $designations,
         private readonly AuditLogger $audit,
     ) {}
 
@@ -57,6 +60,9 @@ class EmployeeService
                 "Employee {$employee->full_name} ({$employee->employee_code}) added",
                 $employee->id,
             );
+
+            // The designation the employee joins with opens their designation history.
+            $this->designations->recordInitial($employee, $user);
 
             if (! empty($data['work_shift_id'])) {
                 $this->assignShift($employee, (int) $data['work_shift_id'], $employee->joining_date, $user);
@@ -99,11 +105,22 @@ class EmployeeService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Employee $employee, array $data, ?UploadedFile $photo = null): Employee
+    public function update(Employee $employee, array $data, ?UploadedFile $photo = null, ?User $user = null): Employee
     {
-        return DB::transaction(function () use ($employee, $data, $photo): Employee {
+        return DB::transaction(function () use ($employee, $data, $photo, $user): Employee {
             $original = $employee->getAttributes();
             $employee->fill(Arr::only($data, self::PROFILE_FIELDS));
+
+            // A designation picked on the edit form goes through the history too,
+            // so no change ever bypasses it. Clearing the designation is a plain
+            // edit: the history keeps the last designation held.
+            $newDesignationId = $employee->designation_id !== null ? (int) $employee->designation_id : null;
+            $originalDesignationId = isset($original['designation_id']) ? (int) $original['designation_id'] : null;
+            $designationChanged = $newDesignationId !== null && $newDesignationId !== $originalDesignationId;
+
+            if ($designationChanged) {
+                $employee->designation_id = $originalDesignationId;
+            }
 
             if ($photo !== null) {
                 if ($employee->photo_path !== null) {
@@ -118,6 +135,17 @@ class EmployeeService
 
             if ($new !== []) {
                 $this->audit->log('employee.updated', $employee, $old, $new, "Employee {$employee->full_name} updated", $employee->id);
+            }
+
+            if ($designationChanged) {
+                $this->designations->change(
+                    $employee,
+                    Designation::query()->findOrFail((int) $newDesignationId),
+                    $this->designations->today(),
+                    DesignationChangeType::Change,
+                    'Changed while editing the employee',
+                    $user,
+                );
             }
 
             return $employee;

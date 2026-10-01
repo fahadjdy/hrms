@@ -24,6 +24,10 @@ export type DashboardKpi = {
     delta: { value: number; direction: string; label: string } | null;
     tone: Tone;
     href: string | null;
+    /** Monthly values, oldest first, for a sparkline; null when there are fewer than two. */
+    trend: number[] | null;
+    /** A part of a whole, e.g. present out of all active employees. */
+    progress: { value: number; max: number; label: string; tone: Tone } | null;
 };
 
 export type LabelValue = { label: string; value: number };

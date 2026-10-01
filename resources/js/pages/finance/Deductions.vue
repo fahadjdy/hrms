@@ -6,6 +6,7 @@ import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import LockedNote from '@/components/finance/LockedNote.vue';
 import FormField from '@/components/FormField.vue';
@@ -270,10 +271,9 @@ const save = () =>
                         :error="form.errors.date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="deduction-date"
                             v-model="form.date"
-                            type="date"
                             required
                         />
                     </FormField>

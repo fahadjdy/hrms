@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { CalendarCheck } from '@lucide/vue';
 import { computed } from 'vue';
 import StackedBar from '@/components/charts/StackedBar.vue';
 import type { StackedSegment } from '@/components/charts/StackedBar.vue';
@@ -47,6 +48,7 @@ const hasData = computed(() => segments.value.some((s) => s.value > 0));
 
 <template>
     <SectionCard
+        :icon="CalendarCheck"
         title="Attendance overview"
         description="Recorded attendance days in the selected period, by status"
     >

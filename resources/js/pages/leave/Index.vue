@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
 import EmployeeCell from '@/components/EmployeeCell.vue';
 import FormField from '@/components/FormField.vue';
@@ -263,16 +264,16 @@ function confirmDecision(): void {
                 placeholder="All leave types"
                 aria-label="Leave type"
             />
-            <Input
+            <DatePicker
                 v-model="filters.from"
-                type="date"
                 aria-label="Leave on or after"
+                placeholder="From date"
                 title="Leave on or after"
             />
-            <Input
+            <DatePicker
                 v-model="filters.to"
-                type="date"
                 aria-label="Leave on or before"
+                placeholder="To date"
                 title="Leave on or before"
             />
         </div>
@@ -441,10 +442,9 @@ function confirmDecision(): void {
                         :error="form.errors.start_date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="leave-start"
                             v-model="form.start_date"
-                            type="date"
                             required
                         />
                     </FormField>
@@ -455,10 +455,9 @@ function confirmDecision(): void {
                         :error="form.errors.end_date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="leave-end"
                             v-model="form.end_date"
-                            type="date"
                             :min="form.start_date"
                             required
                         />

@@ -31,6 +31,8 @@ class PermissionMatrixTest extends TestCase
             'employees.view (departments)' => ['employees.view', 'get', '/departments'],
             'employees.manage' => ['employees.manage', 'get', '/employees/create'],
             'employees.manage (departments)' => ['employees.manage', 'post', '/departments'],
+            'employees.view (designation history)' => ['employees.view', 'get', '/designation-changes'],
+            'employees.manage (designation change)' => ['employees.manage', 'post', '/employees/{employee}/designation-changes'],
             'attendance.view' => ['attendance.view', 'get', '/attendance'],
             'attendance.view (calendar)' => ['attendance.view', 'get', '/employees/{employee}/attendance'],
             'attendance.manage' => ['attendance.manage', 'post', '/attendance/generate'],

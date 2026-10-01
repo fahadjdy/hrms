@@ -40,6 +40,7 @@ import { index as borrowRecoveries } from '@/routes/borrow-recoveries';
 import { index as borrows } from '@/routes/borrows';
 import { index as deductions } from '@/routes/deductions';
 import { index as departments } from '@/routes/departments';
+import { index as designationChanges } from '@/routes/designation-changes';
 import { index as designations } from '@/routes/designations';
 import { index as documents } from '@/routes/documents';
 import {
@@ -113,6 +114,11 @@ const companyNav: NavGroup[] = [
             {
                 title: 'Designations',
                 href: designations(),
+                permission: 'employees.view',
+            },
+            {
+                title: 'Designation History',
+                href: designationChanges(),
                 permission: 'employees.view',
             },
             {

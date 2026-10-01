@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import PageHeader from '@/components/PageHeader.vue';
 import { Button } from '@/components/ui/button';
@@ -183,16 +184,16 @@ const changes = computed(() => {
                 placeholder="All users"
                 aria-label="User"
             />
-            <Input
+            <DatePicker
                 v-model="filters.from"
-                type="date"
                 aria-label="From date"
+                placeholder="From date"
                 :max="filters.to || undefined"
             />
-            <Input
+            <DatePicker
                 v-model="filters.to"
-                type="date"
                 aria-label="To date"
+                placeholder="To date"
                 :min="filters.from || undefined"
             />
         </div>

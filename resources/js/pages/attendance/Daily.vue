@@ -17,6 +17,7 @@ import MarkAttendanceDialog from '@/components/attendance/MarkAttendanceDialog.v
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import EmployeeCell from '@/components/EmployeeCell.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -301,9 +302,8 @@ const generateOpen = ref(false);
                 >
                     <ChevronLeft />
                 </Button>
-                <Input
+                <DatePicker
                     v-model="filters.date"
-                    type="date"
                     aria-label="Attendance date"
                     class="w-[10.5rem]"
                 />

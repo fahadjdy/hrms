@@ -4,6 +4,7 @@ import { Search } from '@lucide/vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import EmployeeCell from '@/components/EmployeeCell.vue';
 import FormField from '@/components/FormField.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -90,10 +91,10 @@ const columns: DataTableColumn[] = [
                 </div>
             </FormField>
             <FormField label="Effective from" for="revision-from">
-                <Input id="revision-from" v-model="filters.from" type="date" />
+                <DatePicker id="revision-from" v-model="filters.from" />
             </FormField>
             <FormField label="Effective to" for="revision-to">
-                <Input id="revision-to" v-model="filters.to" type="date" />
+                <DatePicker id="revision-to" v-model="filters.to" />
             </FormField>
         </div>
 

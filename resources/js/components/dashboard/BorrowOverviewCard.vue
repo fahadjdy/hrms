@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { HandCoins } from '@lucide/vue';
 import { computed } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import ChartCard from '@/components/charts/ChartCard.vue';
@@ -42,6 +43,7 @@ const hasTrend = computed(() =>
 
 <template>
     <ChartCard
+        :icon="HandCoins"
         title="Borrow overview"
         description="Borrow given against borrow recovered, month by month"
         :legend="[
@@ -58,9 +60,15 @@ const hasTrend = computed(() =>
         }"
     >
         <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-            <div v-for="tile in tiles" :key="tile.label">
+            <div
+                v-for="tile in tiles"
+                :key="tile.label"
+                class="rounded-lg bg-muted/50 px-3 py-2.5"
+            >
                 <dt class="text-xs text-muted-foreground">{{ tile.label }}</dt>
-                <dd class="text-base font-semibold">{{ tile.value }}</dd>
+                <dd class="tabular text-base font-semibold">
+                    {{ tile.value }}
+                </dd>
             </div>
         </dl>
 

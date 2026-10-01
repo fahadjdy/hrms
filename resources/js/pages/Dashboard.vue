@@ -1,5 +1,29 @@
 <script setup lang="ts">
 import { Deferred, Head, Link, router } from '@inertiajs/vue3';
+import {
+    AlarmClock,
+    ArrowLeftRight,
+    Building2,
+    CalendarCheck,
+    CalendarDays,
+    CalendarX,
+    Coins,
+    HandCoins,
+    History,
+    Hourglass,
+    Landmark,
+    Network,
+    Plane,
+    ReceiptText,
+    Timer,
+    TrendingUp,
+    UserCheck,
+    UserMinus,
+    UserRound,
+    Users,
+    Wallet,
+} from '@lucide/vue';
+import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import ChartCard from '@/components/charts/ChartCard.vue';
@@ -106,10 +130,102 @@ const periodLabel = computed(
     () => `${date(props.filters.from)} to ${date(props.filters.to)}`,
 );
 
-const kpiValue = (kpi: DashboardKpi): string =>
-    kpi.format === 'money'
-        ? money(kpi.value, { whole: true })
-        : number(kpi.value, 0);
+const kpiFormat =
+    (kpi: DashboardKpi) =>
+    (value: number): string =>
+        kpi.format === 'money'
+            ? money(value, { whole: true })
+            : number(Math.round(value), 0);
+
+/** Every figure has its own icon, so the grid can be scanned without reading. */
+const KPI_ICONS: Record<string, Component> = {
+    total_employees: Users,
+    active_employees: UserCheck,
+    past_employees: UserMinus,
+    present_today: CalendarCheck,
+    absent_today: CalendarX,
+    on_leave_today: Plane,
+    late_today: AlarmClock,
+    current_payroll: Wallet,
+    total_overtime: Timer,
+    total_borrowed: HandCoins,
+    borrow_outstanding: Landmark,
+    total_deductions: ReceiptText,
+};
+
+/** Which way a change is good news. More payroll is neither good nor bad. */
+const GOOD_DIRECTION: Record<string, 'up' | 'down'> = {
+    total_overtime: 'down',
+};
+
+type KpiGroup = {
+    key: string;
+    title: string;
+    description: string;
+    grid: string;
+    /** Figures in display order, with any column span they need. */
+    items: { key: string; span?: string }[];
+};
+
+const todayLabel = computed(() => {
+    const weekday = new Date(`${props.today}T00:00:00`).toLocaleDateString(
+        'en',
+        { weekday: 'long' },
+    );
+
+    return `${weekday}, ${date(props.today)}`;
+});
+
+const kpiGroups = computed<KpiGroup[]>(() => [
+    {
+        key: 'today',
+        title: 'Today',
+        description: todayLabel.value,
+        grid: 'grid-cols-2 lg:grid-cols-4',
+        items: [
+            { key: 'present_today' },
+            { key: 'absent_today' },
+            { key: 'on_leave_today' },
+            { key: 'late_today' },
+        ],
+    },
+    {
+        key: 'people',
+        title: 'People',
+        description: 'Headcount right now',
+        grid: 'grid-cols-2 sm:grid-cols-3',
+        items: [
+            { key: 'active_employees' },
+            { key: 'total_employees' },
+            { key: 'past_employees', span: 'col-span-2 sm:col-span-1' },
+        ],
+    },
+    {
+        key: 'money',
+        title: 'Payroll and borrow',
+        description: 'Latest payroll, the selected period and borrow to date',
+        grid: 'sm:grid-cols-2 xl:grid-cols-6',
+        items: [
+            { key: 'current_payroll', span: 'xl:col-span-2' },
+            { key: 'total_overtime', span: 'xl:col-span-2' },
+            { key: 'total_deductions', span: 'xl:col-span-2' },
+            { key: 'total_borrowed', span: 'xl:col-span-3' },
+            { key: 'borrow_outstanding', span: 'sm:col-span-2 xl:col-span-3' },
+        ],
+    },
+]);
+
+const kpiByKey = computed(
+    () => new Map(props.kpis.map((kpi) => [kpi.key, kpi])),
+);
+
+const groupItems = (group: KpiGroup) =>
+    group.items
+        .map((item) => ({ ...item, kpi: kpiByKey.value.get(item.key) }))
+        .filter(
+            (item): item is { key: string; span?: string; kpi: DashboardKpi } =>
+                item.kpi !== undefined,
+        );
 
 const borrowRanking = computed<Ranking | null>(() =>
     props.borrow
@@ -158,21 +274,46 @@ const hasShortHours = computed(
             :class="refreshing ? 'opacity-60' : ''"
             :aria-busy="refreshing"
         >
-            <section
-                aria-label="Key figures"
-                class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6"
-            >
-                <StatCard
-                    v-for="kpi in kpis"
-                    :key="kpi.key"
-                    :label="kpi.label"
-                    :value="kpiValue(kpi)"
-                    :hint="kpi.hint"
-                    :tone="kpi.tone"
-                    :delta="kpi.delta"
-                    :href="kpi.href"
-                />
-            </section>
+            <!-- Key figures, grouped by what they answer -->
+            <div class="grid gap-5 2xl:grid-cols-[4fr_3fr]">
+                <section
+                    v-for="group in kpiGroups"
+                    :key="group.key"
+                    :aria-labelledby="`kpi-${group.key}`"
+                    class="flex flex-col"
+                    :class="group.key === 'money' ? '2xl:col-span-2' : ''"
+                >
+                    <div class="mb-2.5 flex flex-wrap items-baseline gap-x-2">
+                        <h2
+                            :id="`kpi-${group.key}`"
+                            class="text-sm font-semibold"
+                        >
+                            {{ group.title }}
+                        </h2>
+                        <p class="text-xs text-muted-foreground">
+                            {{ group.description }}
+                        </p>
+                    </div>
+                    <div class="grid flex-1 gap-3" :class="group.grid">
+                        <StatCard
+                            v-for="{ key, span, kpi } in groupItems(group)"
+                            :key="key"
+                            :class="span"
+                            :label="kpi.label"
+                            :value="kpi.value"
+                            :format="kpiFormat(kpi)"
+                            :hint="kpi.hint"
+                            :tone="kpi.tone"
+                            :icon="KPI_ICONS[kpi.key]"
+                            :delta="kpi.delta"
+                            :good-direction="GOOD_DIRECTION[kpi.key] ?? null"
+                            :trend="kpi.trend"
+                            :progress="kpi.progress"
+                            :href="kpi.href"
+                        />
+                    </div>
+                </section>
+            </div>
 
             <!-- Attendance and payroll trend -->
             <div class="grid gap-4 lg:grid-cols-2">
@@ -192,6 +333,7 @@ const hasShortHours = computed(
                     </template>
                     <ChartCard
                         v-if="payroll"
+                        :icon="TrendingUp"
                         title="Salary expense trend"
                         description="Net salary paid per payroll month, without borrow given"
                         :empty="!hasPayrollTrend"
@@ -249,6 +391,7 @@ const hasShortHours = computed(
                 </template>
                 <div v-if="payroll" class="grid gap-4 lg:grid-cols-2">
                     <ChartCard
+                        :icon="Building2"
                         title="Department payroll"
                         :description="
                             payroll.current
@@ -285,6 +428,7 @@ const hasShortHours = computed(
                     </ChartCard>
 
                     <SectionCard
+                        :icon="ReceiptText"
                         title="Deduction summary"
                         :description="
                             payroll.current
@@ -388,6 +532,7 @@ const hasShortHours = computed(
                 </template>
                 <div v-if="people" class="grid gap-4 lg:grid-cols-2">
                     <ChartCard
+                        :icon="Network"
                         title="Department distribution"
                         description="Current employees in each department"
                         :empty="people.by_department.length === 0"
@@ -418,57 +563,56 @@ const hasShortHours = computed(
                     </ChartCard>
 
                     <SectionCard
+                        :icon="UserRound"
                         title="Employee status"
                         description="Headcount, movement this month and gender split"
                     >
-                        <dl
-                            class="grid grid-cols-2 gap-x-4 gap-y-4 sm:grid-cols-3"
-                        >
-                            <div>
+                        <dl class="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     Active
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.active }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     Past
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.past }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     New this month
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.new_this_month }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     Exited this month
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.exited_this_month }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     On probation
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.on_probation }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     On notice
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ people.headcount.on_notice }}
                                 </dd>
                             </div>
@@ -522,6 +666,7 @@ const hasShortHours = computed(
                     </template>
                     <template v-if="hoursTrend">
                         <ChartCard
+                            :icon="Timer"
                             title="Overtime trend"
                             description="Overtime hours recorded in attendance per month"
                             :empty="!hasOvertimeHours"
@@ -551,6 +696,7 @@ const hasShortHours = computed(
                         </ChartCard>
 
                         <ChartCard
+                            :icon="Hourglass"
                             title="Short hours trend"
                             description="Hours worked below the required hours per month"
                             :empty="!hasShortHours"
@@ -587,6 +733,7 @@ const hasShortHours = computed(
                     </template>
                     <ChartCard
                         v-if="payroll"
+                        :icon="Coins"
                         title="Overtime cost"
                         description="Overtime paid through payroll per month"
                         :empty="!hasOvertimeCost"
@@ -650,23 +797,24 @@ const hasShortHours = computed(
                 <div class="grid gap-4 lg:grid-cols-3">
                     <SectionCard
                         v-if="calendar"
+                        :icon="CalendarDays"
                         title="Holidays and working days"
                         :description="calendar.month_label"
                     >
-                        <dl class="grid grid-cols-2 gap-4">
-                            <div>
+                        <dl class="grid grid-cols-2 gap-2.5">
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     Working days this month
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ calendar.working_days }}
                                 </dd>
                             </div>
-                            <div>
+                            <div class="rounded-lg bg-muted/50 px-3 py-2.5">
                                 <dt class="text-xs text-muted-foreground">
                                     Remaining, including today
                                 </dt>
-                                <dd class="text-xl font-semibold">
+                                <dd class="tabular text-xl font-semibold">
                                     {{ calendar.remaining_working_days }}
                                 </dd>
                             </div>
@@ -738,6 +886,7 @@ const hasShortHours = computed(
 
                     <SectionCard
                         v-if="people"
+                        :icon="ArrowLeftRight"
                         title="Joining and exits"
                         description="Who is new, completing probation or has left"
                     >
@@ -762,6 +911,7 @@ const hasShortHours = computed(
 
                     <SectionCard
                         v-if="activity"
+                        :icon="History"
                         title="Recent employee activity"
                         description="The latest audited changes to employee records"
                     >

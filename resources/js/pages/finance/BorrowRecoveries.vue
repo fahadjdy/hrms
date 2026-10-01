@@ -5,6 +5,7 @@ import { computed, ref } from 'vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import EmptyState from '@/components/EmptyState.vue';
 import BorrowTransactionBadge from '@/components/finance/BorrowTransactionBadge.vue';
 import RecoveryDialog from '@/components/finance/RecoveryDialog.vue';
@@ -166,18 +167,16 @@ const signedAmount = (row: TransactionRow): string => {
                 aria-label="Entry type"
             />
             <FormField label="From" for="ledger-from">
-                <Input
+                <DatePicker
                     id="ledger-from"
                     v-model="filters.from"
-                    type="date"
                     :max="filters.to || undefined"
                 />
             </FormField>
             <FormField label="To" for="ledger-to">
-                <Input
+                <DatePicker
                     id="ledger-to"
                     v-model="filters.to"
-                    type="date"
                     :min="filters.from || undefined"
                 />
             </FormField>

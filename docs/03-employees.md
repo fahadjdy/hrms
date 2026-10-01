@@ -8,15 +8,16 @@ Employee sirf ek HR record hai. Uska koi login nahi hota.
 
 Menu me **Employees** par click karein. Andar ye pages hain:
 
-| Page                 | Kaam                                                                                                                 |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Active Employees** | Jo abhi company me kaam kar rahe hain unki list                                                                      |
-| **Past Employees**   | Jo company chhod chuke hain. Dekhein: [Employee Exit aur Final Settlement](11-employee-exit-aur-final-settlement.md) |
-| **Add Employee**     | Naya employee jodna                                                                                                  |
-| **Departments**      | Departments banana aur badalna                                                                                       |
-| **Designations**     | Designations (job titles) banana aur badalna                                                                         |
-| **Salary History**   | Salary me hue saare badlav. Dekhein: [Salary, Bonus, Deduction](09-salary-bonus-deduction.md)                        |
-| **Documents**        | Employees ke documents upload aur download karna                                                                     |
+| Page                    | Kaam                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| **Active Employees**    | Jo abhi company me kaam kar rahe hain unki list                                                                      |
+| **Past Employees**      | Jo company chhod chuke hain. Dekhein: [Employee Exit aur Final Settlement](11-employee-exit-aur-final-settlement.md) |
+| **Add Employee**        | Naya employee jodna                                                                                                  |
+| **Departments**         | Departments banana aur badalna                                                                                       |
+| **Designations**        | Designations (job titles) banana aur badalna                                                                         |
+| **Designation History** | Poori company me kab kisko promotion mili, kiska role badla: har badlav ki list                                      |
+| **Salary History**      | Salary me hue saare badlav. Dekhein: [Salary, Bonus, Deduction](09-salary-bonus-deduction.md)                        |
+| **Documents**           | Employees ke documents upload aur download karna                                                                     |
 
 ## Kaun use kar sakta hai
 
@@ -61,15 +62,16 @@ List me naam par click karne se profile khulti hai. Sabse upar photo, naam, stat
 
 Neeche ye hisse hain:
 
-| Hissa                     | Kya dikhata hai                                                                                                                                                                                                                                |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Details**               | Employee ID, department, designation, employment type, reporting manager, joining date, probation ki aakhri tareekh, gender, date of birth, phone, email, address aur notes                                                                    |
-| **Attendance - (period)** | Chalu payroll period ka saar: working days, present, absent, half day, paid leave, unpaid leave, late, not marked, required hours, worked hours, short hours, overtime aur **Attendance rate**. **Open calendar** se poora calendar khulta hai |
-| **Borrow / advance**      | **Total borrowed**, **Total recovered**, **Total outstanding** aur har borrow alag line me: reference number, "Existing at joining" ya "New borrow", tareekh, mahine ki kist, amount, baaki rakam aur status                                   |
-| **Recent activity**       | Is employee ke record me hue sabse naye badlav, kisne kiye aur kab                                                                                                                                                                             |
-| **Work timing**           | Kaun si shift lagu hai, samay, roz ke zaroori ghante, aur ye shift kahan se aayi                                                                                                                                                               |
-| **Current salary**        | Mahine ki gross salary, kab se lagu hai, kitni baar badli, aur har component                                                                                                                                                                   |
-| **Leave balance (saal)**  | Har leave type me kitni chhutti li, kitni pending hai aur kitni baaki hai                                                                                                                                                                      |
+| Hissa                     | Kya dikhata hai                                                                                                                                                                                                                                            |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Details**               | Employee ID, department, designation, employment type, reporting manager, joining date, probation ki aakhri tareekh, gender, date of birth, phone, email, address aur notes                                                                                |
+| **Designation history**   | Employee ne ab tak kaun kaun si designation sambhali, kab se: sabse nayi upar (**Current** ke saath), har badlav ka type (**Joined as**, **Promotion**, **Demotion**, **Role change**), wajah aur kisne darj kiya. **Change designation** button yahin hai |
+| **Attendance - (period)** | Chalu payroll period ka saar: working days, present, absent, half day, paid leave, unpaid leave, late, not marked, required hours, worked hours, short hours, overtime aur **Attendance rate**. **Open calendar** se poora calendar khulta hai             |
+| **Borrow / advance**      | **Total borrowed**, **Total recovered**, **Total outstanding** aur har borrow alag line me: reference number, "Existing at joining" ya "New borrow", tareekh, mahine ki kist, amount, baaki rakam aur status                                               |
+| **Recent activity**       | Is employee ke record me hue sabse naye badlav, kisne kiye aur kab                                                                                                                                                                                         |
+| **Work timing**           | Kaun si shift lagu hai, samay, roz ke zaroori ghante, aur ye shift kahan se aayi                                                                                                                                                                           |
+| **Current salary**        | Mahine ki gross salary, kab se lagu hai, kitni baar badli, aur har component                                                                                                                                                                               |
+| **Leave balance (saal)**  | Har leave type me kitni chhutti li, kitni pending hai aur kitni baaki hai                                                                                                                                                                                  |
 
 **Work timing** me shift ke neeche ek label hota hai jo batata hai ki shift kahan se aayi:
 
@@ -173,6 +175,21 @@ Edit form me salary aur work timing nahi hote. Wo profile se badle jate hain taa
 
 Us tareekh se pehle ke dino par purana samay hi rehta hai.
 
+### Designation badalna aur uski history dekhna
+
+Kisi ko promotion mili, demotion hui ya role badla, to use yahan darj karein. Purani designation history me bani rehti hai; employee ki profile par turant nayi designation dikhne lagti hai.
+
+1. Employee ki profile kholein aur **Designation history** hisse me **Change designation** dabayein.
+2. **New designation** me nayi designation chunein. Abhi wali designation list me nahi aati, aur sirf **Active** designations dikhti hain.
+3. **Type of change** chunein: **Promotion** (upar gaya), **Demotion** (neeche aaya) ya **Role change** (same level par alag kaam).
+4. **Effective date** me wo tareekh daalein jis din se nayi designation lagu hui. Aaj ya usse pehle ki tareekh chalti hai, aane wali tareekh nahi.
+5. **Reason** me ek line likhein, jaise "Annual review" (zaroori nahi, par aage kaam aati hai).
+6. **Save designation** dabayein.
+
+Poori company ki list ek jagah dekhni ho to **Employees** me **Designation History** kholein. Wahan **Employee** (naam ya ID), **Type**, **Effective from** aur **Effective to** se filter kar sakte hain. Employee ke naam par click karne se uski profile khulti hai.
+
+Agar aap **Edit** form se designation badalte hain, to bhi history me ek entry **Role change** ke type se apne aap ban jati hai, aaj ki tareekh ke saath aur wajah "Changed while editing the employee". Promotion ya demotion darj karni ho to **Change designation** hi use karein, taaki sahi type aur tareekh darj ho.
+
 ### Salary set karna ya badalna
 
 Profile par **Current salary** hisse me **Set salary** (ya **History and revisions**) dabayein, ya upar **Salary** button. Poora tareeka: [Salary, Bonus, Deduction](09-salary-bonus-deduction.md)
@@ -232,12 +249,23 @@ Meera (HR Manager) **Add Employee** kholti hain:
 
 **Add employee** dabate hi Sana ki profile khulti hai. **Current salary** me ₹45,000 aur **Borrow / advance** me ₹24,000 outstanding dikhta hai, "Existing at joining" ke label ke saath. December ke payroll se har mahine ₹4,000 katna shuru hoga.
 
+**Promotion ka example:** Amit Verma ne 3 Feb 2024 ko "Junior Developer" ban kar join kiya. 1 Jul 2025 ko wo "Senior Developer" bane aur 1 Sep 2026 ko "Team Lead". HR ne dono baar profile par **Change designation** dabaya: **New designation** Senior Developer, **Type of change** Promotion, **Effective date** 01 Jul 2025, **Reason** "Annual review"; phir Team Lead, Promotion, 01 Sep 2026, "Took over the mobile team". Ab Amit ki profile par **Designation history** me teen lines dikhti hain:
+
+| Designation                         | Type      | Effective   |
+| ----------------------------------- | --------- | ----------- |
+| Senior Developer → **Team Lead**    | Promotion | 01 Sep 2026 |
+| Junior Developer → Senior Developer | Promotion | 01 Jul 2025 |
+| Junior Developer                    | Joined as | 03 Feb 2024 |
+
+Salary badhani ho to wo alag se **Salary** page par revision se hoti hai; designation badalne se salary apne aap nahi badalti.
+
 ## Dhyan rakhne wali baatein
 
 - **Employee kabhi delete nahi hota.** Delete ka koi button nahi hai. Koi chhod kar jaye to profile par **Leave company** use karein. Wo **Past Employees** me chala jata hai aur uski poori history bani rehti hai.
 - **Employee ID company me unique hona chahiye.** Same ID dobara dene par form save nahi hoga.
 - **Joining date soch samajh kar bharein.** Attendance aur salary isi tareekh se gini jati hai.
 - **Salary edit form se nahi badalti.** Har salary badlav ek nayi entry banta hai aur purani entry history me rehti hai.
+- **Designation ki history kabhi mitti nahi.** Galat entry ho gayi to use edit ya delete nahi kar sakte; sahi designation ke saath ek aur **Change designation** darj karein. **Effective date** aaj se aage ki, joining date se pehle ki, ya pichhle badlav se pehle ki nahi ho sakti. Past employee ki designation nahi badalti.
 - **Salary set na ho to payroll us employee ko kuch nahi deta.** Profile par likha aata hai "No salary is set yet."
 - **Salary me kam se kam ek Earning honi chahiye** jiski amount zero se zyada ho. Sirf Deduction wali lines se salary nahi banti.
 - **Employee khud apna reporting manager nahi ho sakta.**
@@ -254,6 +282,9 @@ Meera (HR Manager) **Add Employee** kholti hain:
 
 **Galti se employee add ho gaya, use kaise hataun?**
 Delete nahi hota. Agar jaankari galat hai to **Edit** se sahi kar dein. Agar wo vyakti company me hai hi nahi to **Leave company** se use past employee bana dein.
+
+**Galat designation darj ho gayi, kaise theek karun?**
+Profile par **Change designation** dabakar sahi designation chunein, **Type of change** me **Role change** rakhein aur **Reason** me likh dein ki pichhli entry galti se hui thi. Dono entries history me rahengi, par profile aur list me sahi wali dikhegi.
 
 **Add karte samay salary nahi pata thi, ab kaise daalun?**
 Profile par **Current salary** me **Set salary** dabayein.

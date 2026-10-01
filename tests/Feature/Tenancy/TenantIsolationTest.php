@@ -6,6 +6,7 @@ use App\Jobs\GenerateSalarySlips;
 use App\Models\Attendance;
 use App\Models\Company;
 use App\Models\Department;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
 use App\Models\Overtime;
@@ -56,6 +57,7 @@ class TenantIsolationTest extends TestCase
             'update' => ['put', '/employees/{id}'],
             'exit' => ['post', '/employees/{id}/exit'],
             'shift' => ['put', '/employees/{id}/shift'],
+            'designation change' => ['post', '/employees/{id}/designation-changes'],
             'attendance calendar' => ['get', '/employees/{id}/attendance'],
             'attendance day' => ['put', '/employees/{id}/attendance/2026-09-10'],
             'salary' => ['get', '/employees/{id}/salary'],
@@ -177,6 +179,23 @@ class TenantIsolationTest extends TestCase
         $this->assertSame(0, Overtime::withoutTenancy()->count());
         $this->assertSame(0, Attendance::withoutTenancy()->count());
         $this->assertDatabaseCount('employee_borrows', 0);
+    }
+
+    public function test_another_companys_designation_cannot_be_given_to_an_employee(): void
+    {
+        $this->createTwoCompanies();
+        $this->useCompany($this->companyB);
+        $designationB = Designation::factory()->create(['name' => 'Secret Lead']);
+        $this->useCompany($this->companyA);
+        $employee = $this->createEmployee(['first_name' => 'Asha']);
+
+        $response = $this->actingAs($this->adminOf($this->companyA))->post("/employees/{$employee->id}/designation-changes", [
+            'designation_id' => $designationB->id, 'type' => 'promotion', 'effective_date' => '2026-09-01',
+        ]);
+
+        $response->assertSessionHasErrors('designation_id');
+        $this->assertDatabaseHas('employees', ['id' => $employee->id, 'designation_id' => null]);
+        $this->assertDatabaseCount('employee_designation_changes', 0);
     }
 
     public function test_another_companys_department_cannot_be_assigned_to_an_employee(): void

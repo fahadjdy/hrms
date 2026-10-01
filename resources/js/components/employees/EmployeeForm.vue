@@ -2,6 +2,7 @@
 import { Link, useForm } from '@inertiajs/vue3';
 import { Plus, Trash2 } from '@lucide/vue';
 import { computed, onBeforeUnmount, reactive, ref } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import SectionCard from '@/components/SectionCard.vue';
@@ -341,10 +342,9 @@ function submit(): void {
                         for="employee-dob"
                         :error="errors.date_of_birth"
                     >
-                        <Input
+                        <DatePicker
                             id="employee-dob"
                             v-model="form.date_of_birth"
-                            type="date"
                         />
                     </FormField>
                     <FormField
@@ -463,10 +463,9 @@ function submit(): void {
                     hint="Attendance and salary start from this date."
                     required
                 >
-                    <Input
+                    <DatePicker
                         id="employee-joining-date"
                         v-model="form.joining_date"
-                        type="date"
                         required
                     />
                 </FormField>
@@ -544,10 +543,9 @@ function submit(): void {
                     :error="errors.probation_end_date"
                     hint="Leave empty if there is no probation."
                 >
-                    <Input
+                    <DatePicker
                         id="employee-probation-end"
                         v-model="form.probation_end_date"
-                        type="date"
                         :min="form.joining_date || undefined"
                     />
                 </FormField>
@@ -748,10 +746,9 @@ function submit(): void {
                         :error="borrowError('borrow_date')"
                         hint="Defaults to the joining date."
                     >
-                        <Input
+                        <DatePicker
                             id="borrow-date"
                             v-model="borrow.borrow_date"
-                            type="date"
                         />
                     </FormField>
                     <FormField
@@ -793,10 +790,10 @@ function submit(): void {
                         :error="borrowError('deduction_start_month')"
                         hint="Defaults to the month after the borrow date."
                     >
-                        <Input
+                        <DatePicker
                             id="borrow-start-month"
                             v-model="borrow.deduction_start_month"
-                            type="month"
+                            mode="month"
                         />
                     </FormField>
                     <FormField

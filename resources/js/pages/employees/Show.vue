@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, setLayoutProps, useForm } from '@inertiajs/vue3';
 import {
+    ArrowRight,
+    BriefcaseBusiness,
     CalendarDays,
     Clock,
     HandCoins,
@@ -12,6 +14,7 @@ import {
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import DetailList from '@/components/DetailList.vue';
 import type { DetailItem } from '@/components/DetailList.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -40,6 +43,7 @@ import { statusTone } from '@/lib/status';
 import { create as borrowCreate, show as borrowShow } from '@/routes/borrows';
 import { edit, index, past, show } from '@/routes/employees';
 import { show as attendanceShow } from '@/routes/employees/attendance';
+import { store as designationChangeStore } from '@/routes/employees/designation-changes';
 import {
     destroy as exitDestroy,
     store as exitStore,
@@ -47,9 +51,10 @@ import {
 import { show as salaryShow } from '@/routes/employees/salary';
 import { update as shiftUpdate } from '@/routes/employees/shift';
 import { show as settlementShow } from '@/routes/final-settlements';
-import type { AttendanceSummary, EmployeeBrief, Option } from '@/types';
+import type { AttendanceSummary, EmployeeBrief, Option, Tone } from '@/types';
 
 type Employee = EmployeeBrief & {
+    designation_id: number | null;
     first_name: string;
     last_name: string | null;
     phone: string | null;
@@ -116,6 +121,18 @@ type Activity = {
     created_at: string | null;
 };
 
+type DesignationChange = {
+    id: number;
+    type: string;
+    type_label: string;
+    from: string | null;
+    to: string;
+    effective_date: string;
+    reason: string | null;
+    changed_by: string | null;
+    created_at: string | null;
+};
+
 const props = defineProps<{
     employee: Employee;
     shift: (Shift & { source: string | null }) | null;
@@ -138,6 +155,9 @@ const props = defineProps<{
     };
     leaveBalances: LeaveBalance[];
     activity: Activity[];
+    designationHistory: DesignationChange[];
+    designations: { id: number; name: string }[];
+    designationChangeTypes: Option[];
     exitTypes: Option[];
     today: string;
 }>();
@@ -288,6 +308,49 @@ function submitShift(): void {
         preserveScroll: true,
         onSuccess: () => {
             shiftOpen.value = false;
+        },
+    });
+}
+
+/* Designation */
+const designationTone: Record<string, Tone> = {
+    initial: 'neutral',
+    promotion: 'positive',
+    demotion: 'warning',
+    change: 'info',
+};
+
+const designationOpen = ref(false);
+const designationForm = useForm({
+    designation_id: null as number | null,
+    type: props.designationChangeTypes[0]?.value ?? 'promotion',
+    effective_date: props.today,
+    reason: '',
+});
+
+// The current designation is left out: a change must go somewhere else.
+const designationOptions = computed(() =>
+    props.designations
+        .filter(
+            (designation) => designation.id !== props.employee.designation_id,
+        )
+        .map((designation) => ({
+            value: designation.id,
+            label: designation.name,
+        })),
+);
+
+function openDesignationDialog(): void {
+    designationForm.reset();
+    designationForm.clearErrors();
+    designationOpen.value = true;
+}
+
+function submitDesignation(): void {
+    designationForm.post(designationChangeStore.url(props.employee.id), {
+        preserveScroll: true,
+        onSuccess: () => {
+            designationOpen.value = false;
         },
     });
 }
@@ -455,6 +518,90 @@ function submitShift(): void {
                             {{ employee.notes }}
                         </p>
                     </div>
+                </SectionCard>
+
+                <SectionCard
+                    title="Designation history"
+                    description="Every designation this employee has held, newest first. Entries are kept permanently; a mistake is corrected by recording another change."
+                >
+                    <template v-if="canManage && !employee.is_past" #actions>
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            data-test="change-designation-button"
+                            @click="openDesignationDialog"
+                        >
+                            Change designation
+                        </Button>
+                    </template>
+
+                    <EmptyState
+                        v-if="designationHistory.length === 0"
+                        title="No designation yet"
+                        :icon="BriefcaseBusiness"
+                        :description="
+                            canManage && !employee.is_past
+                                ? 'Give this employee a designation with Change designation; the history starts from there.'
+                                : 'This employee has not been given a designation.'
+                        "
+                    />
+                    <ol v-else class="grid gap-4 border-l pl-4">
+                        <li
+                            v-for="(change, index) in designationHistory"
+                            :key="change.id"
+                            class="relative text-sm"
+                        >
+                            <span
+                                class="absolute top-1.5 -left-[1.3125rem] size-2 rounded-full ring-4 ring-card"
+                                :class="
+                                    index === 0 ? 'bg-primary' : 'bg-border'
+                                "
+                                aria-hidden="true"
+                            />
+                            <div
+                                class="flex flex-wrap items-center gap-x-2 gap-y-1"
+                            >
+                                <template v-if="change.from">
+                                    <span class="text-muted-foreground">
+                                        {{ change.from }}
+                                    </span>
+                                    <ArrowRight
+                                        class="size-3.5 shrink-0 text-muted-foreground"
+                                        aria-label="to"
+                                    />
+                                </template>
+                                <span class="font-medium">{{ change.to }}</span>
+                                <StatusBadge
+                                    :tone="
+                                        designationTone[change.type] ??
+                                        'neutral'
+                                    "
+                                >
+                                    {{ change.type_label }}
+                                </StatusBadge>
+                                <span
+                                    v-if="index === 0"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    Current
+                                </span>
+                            </div>
+                            <p
+                                class="tabular mt-0.5 text-xs text-muted-foreground"
+                            >
+                                Effective {{ date(change.effective_date) }}
+                                <template v-if="change.changed_by">
+                                    / recorded by {{ change.changed_by }}
+                                </template>
+                            </p>
+                            <p
+                                v-if="change.reason"
+                                class="mt-0.5 max-w-[70ch] text-sm text-muted-foreground"
+                            >
+                                {{ change.reason }}
+                            </p>
+                        </li>
+                    </ol>
                 </SectionCard>
 
                 <SectionCard
@@ -809,10 +956,9 @@ function submitShift(): void {
                         hint="Salary is paid up to this day."
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="exit-last-working-date"
                             v-model="exitForm.last_working_date"
-                            type="date"
                             :min="employee.joining_date"
                             required
                         />
@@ -824,10 +970,9 @@ function submitShift(): void {
                         hint="The date the exit is recorded for."
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="exit-date"
                             v-model="exitForm.exit_date"
-                            type="date"
                             :min="employee.joining_date"
                             required
                         />
@@ -931,10 +1076,9 @@ function submitShift(): void {
                     :error="shiftForm.errors.effective_from"
                     required
                 >
-                    <Input
+                    <DatePicker
                         id="shift-effective-from"
                         v-model="shiftForm.effective_from"
-                        type="date"
                         required
                     />
                 </FormField>
@@ -950,6 +1094,102 @@ function submitShift(): void {
                     <Button type="submit" :disabled="shiftForm.processing">
                         <Spinner v-if="shiftForm.processing" />
                         Save work timing
+                    </Button>
+                </DialogFooter>
+            </form>
+        </DialogContent>
+    </Dialog>
+
+    <!-- Designation -->
+    <Dialog v-model:open="designationOpen">
+        <DialogContent class="sm:max-w-md">
+            <form class="grid gap-5" @submit.prevent="submitDesignation">
+                <DialogHeader>
+                    <DialogTitle>Change designation</DialogTitle>
+                    <DialogDescription>
+                        {{
+                            employee.designation
+                                ? `${employee.name} is ${employee.designation} today.`
+                                : `${employee.name} has no designation yet.`
+                        }}
+                        The change is added to the designation history and the
+                        profile shows the new designation right away.
+                    </DialogDescription>
+                </DialogHeader>
+
+                <FormField
+                    label="New designation"
+                    for="designation-id"
+                    :error="designationForm.errors.designation_id"
+                    required
+                >
+                    <NativeSelect
+                        id="designation-id"
+                        v-model="designationForm.designation_id"
+                        :options="designationOptions"
+                        placeholder="Choose a designation"
+                    />
+                </FormField>
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                        label="Type of change"
+                        for="designation-type"
+                        :error="designationForm.errors.type"
+                        required
+                    >
+                        <NativeSelect
+                            id="designation-type"
+                            v-model="designationForm.type"
+                            :options="designationChangeTypes"
+                        />
+                    </FormField>
+                    <FormField
+                        label="Effective date"
+                        for="designation-effective-date"
+                        :error="designationForm.errors.effective_date"
+                        hint="Today or earlier, not before the last change."
+                        required
+                    >
+                        <DatePicker
+                            id="designation-effective-date"
+                            v-model="designationForm.effective_date"
+                            :min="
+                                designationHistory[0]?.effective_date ??
+                                employee.joining_date
+                            "
+                            :max="today"
+                            required
+                        />
+                    </FormField>
+                </div>
+                <FormField
+                    label="Reason"
+                    for="designation-reason"
+                    :error="designationForm.errors.reason"
+                >
+                    <Input
+                        id="designation-reason"
+                        v-model="designationForm.reason"
+                        maxlength="255"
+                        placeholder="e.g. Annual review, took over the team"
+                    />
+                </FormField>
+
+                <DialogFooter class="gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        @click="designationOpen = false"
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        type="submit"
+                        :disabled="designationForm.processing"
+                        data-test="save-designation-button"
+                    >
+                        <Spinner v-if="designationForm.processing" />
+                        Save designation
                     </Button>
                 </DialogFooter>
             </form>

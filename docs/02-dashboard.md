@@ -16,12 +16,31 @@ Upar se neeche is kram me:
 
 1. **Heading**: "Dashboard" aur uske neeche likha hota hai ki kis tareekh se kis tareekh tak ka data dikh raha hai.
 2. **Filters ki ek line**: **Period**, **Department**, **Employee**, **Employee status**.
-3. **Mukhya numbers ke cards** (12 cards).
+3. **Mukhya numbers ke cards** (12 cards), teen hisson me:
+    - **Today**: aaj ki attendance (Present, Absent, On Leave, Late). Heading ke saath aaj ka din aur tareekh likhi hoti hai.
+    - **People**: kitne log hain (Active, Total, Past).
+    - **Payroll and borrow**: payroll, overtime, katauti aur borrow.
 4. **Charts aur lists**.
 
 ### Mukhya numbers ke cards
 
-Kisi bhi card par click karne se uska poora page khul jata hai.
+Har card me upar left uska naam, upar right ek chhota nishan (icon), beech me bada number aur neeche ek line ki jankari hoti hai. Kisi bhi card par mouse le jaane par wo halka sa upar uthta hai; click karne se uska poora page khul jata hai. Filter badalne par number seedha nahi badalta, ginti chalte hue naye number tak pahunchta hai.
+
+Card ka rang uska matlab batata hai:
+
+| Rang                 | Matlab                                          | Jaise                          |
+| -------------------- | ----------------------------------------------- | ------------------------------ |
+| Hara                 | Achhi khabar                                    | Present Today                  |
+| Laal                 | Dhyan dene layak                                | Absent Today                   |
+| Peela / narangi      | Nazar rakhein                                   | Late Today, Borrow Outstanding |
+| Neela                | Sirf jankari                                    | On Leave                       |
+| Company ka hara rang | Aam number, jiska koi achha ya bura matlab nahi | Total Employees, Payroll       |
+
+Kuch cards me neeche aur bhi jankari hoti hai:
+
+- **Patti (progress bar)**: **Today** ke chaaron cards me dikhta hai ki ye log abhi ke saare employees ka kitna % hain, jaise "75% of 28 active". **Borrow Outstanding** me dikhta hai ki diye gaye borrow ka kitna % wapas aa chuka hai ("recovered so far").
+- **Chhoti line (sparkline)**: **Payroll**, **Total Overtime**, **Total Deductions** aur **Total Borrowed** me pichhle mahino ka utaar-chadhav. Line wahan se shuru hoti hai jis mahine se data hai; sabse right wala bindu sabse naya mahina hai.
+- **Pichhle se tulna**: **Payroll** aur **Total Overtime** me ek chhota teer aur % dikhta hai ki pichhli baar se kitna upar ya neeche. **Total Overtime** kam hona achha maana jata hai, isliye wo hare rang me aata hai; badhne par peela. **Payroll** ki tulna hamesha saade rang me hoti hai, kyunki salary badhna na achha hai na bura.
 
 | Card                   | Matlab                                                                                                                                | Click karne par                |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |

@@ -47,18 +47,18 @@ Kuch aur baatein:
 
 Menu me jis heading ke saath teer (arrow) bana hai, us par click karne se uske andar ke pages khulte hain.
 
-| Menu                 | Andar ke pages                                                                                                                   | Guide                                                                                                              |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Dashboard**        | -                                                                                                                                | [Dashboard](02-dashboard.md)                                                                                       |
-| **Employees**        | **Active Employees**, **Past Employees**, **Add Employee**, **Departments**, **Designations**, **Salary History**, **Documents** | [Employees](03-employees.md)                                                                                       |
-| **Attendance**       | **Daily Attendance**, **Attendance Calendar**, **Work Shifts**, **Attendance Settings**, **Weekly Holidays**, **Holidays**       | [Attendance](05-attendance.md), [Work Shifts aur Holidays](04-work-shifts-aur-holidays.md)                         |
-| **Leave**            | **Leave Records**, **Leave Types**, **Leave Balance**                                                                            | [Leave](06-leave.md)                                                                                               |
-| **Payroll**          | **Payroll**, **Salary Structure**, **Salary Revisions**, **Salary Slips**, **Payroll Reports**                                   | [Payroll aur Salary Slip](10-payroll-aur-salary-slip.md), [Salary, Bonus, Deduction](09-salary-bonus-deduction.md) |
-| **Employee Finance** | **Borrow / Advance**, **Borrow Recovery**, **Overtime**, **Short Hours**, **Deductions**, **Bonuses**                            | [Borrow / Advance](08-borrow-advance.md), [Short Hours aur Overtime](07-short-hours-aur-overtime.md)               |
-| **Final Settlement** | -                                                                                                                                | [Employee Exit aur Final Settlement](11-employee-exit-aur-final-settlement.md)                                     |
-| **Reports**          | -                                                                                                                                | [Reports aur Audit Log](12-reports-aur-audit-log.md)                                                               |
-| **Settings**         | **Company**, **Attendance**, **Payroll**, **Leave**, **Work Shifts**, **Roles & Permissions**                                    | [Company Settings](13-company-settings.md)                                                                         |
-| **Audit Logs**       | -                                                                                                                                | [Reports aur Audit Log](12-reports-aur-audit-log.md)                                                               |
+| Menu                 | Andar ke pages                                                                                                                                            | Guide                                                                                                              |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **Dashboard**        | -                                                                                                                                                         | [Dashboard](02-dashboard.md)                                                                                       |
+| **Employees**        | **Active Employees**, **Past Employees**, **Add Employee**, **Departments**, **Designations**, **Designation History**, **Salary History**, **Documents** | [Employees](03-employees.md)                                                                                       |
+| **Attendance**       | **Daily Attendance**, **Attendance Calendar**, **Work Shifts**, **Attendance Settings**, **Weekly Holidays**, **Holidays**                                | [Attendance](05-attendance.md), [Work Shifts aur Holidays](04-work-shifts-aur-holidays.md)                         |
+| **Leave**            | **Leave Records**, **Leave Types**, **Leave Balance**                                                                                                     | [Leave](06-leave.md)                                                                                               |
+| **Payroll**          | **Payroll**, **Salary Structure**, **Salary Revisions**, **Salary Slips**, **Payroll Reports**                                                            | [Payroll aur Salary Slip](10-payroll-aur-salary-slip.md), [Salary, Bonus, Deduction](09-salary-bonus-deduction.md) |
+| **Employee Finance** | **Borrow / Advance**, **Borrow Recovery**, **Overtime**, **Short Hours**, **Deductions**, **Bonuses**                                                     | [Borrow / Advance](08-borrow-advance.md), [Short Hours aur Overtime](07-short-hours-aur-overtime.md)               |
+| **Final Settlement** | -                                                                                                                                                         | [Employee Exit aur Final Settlement](11-employee-exit-aur-final-settlement.md)                                     |
+| **Reports**          | -                                                                                                                                                         | [Reports aur Audit Log](12-reports-aur-audit-log.md)                                                               |
+| **Settings**         | **Company**, **Attendance**, **Payroll**, **Leave**, **Work Shifts**, **Roles & Permissions**                                                             | [Company Settings](13-company-settings.md)                                                                         |
+| **Audit Logs**       | -                                                                                                                                                         | [Reports aur Audit Log](12-reports-aur-audit-log.md)                                                               |
 
 Aapke role ke hisaab se inme se kuch cheezein kam dikh sakti hain.
 
@@ -148,6 +148,10 @@ Agar aap chahte hain ki screen aapke computer ya phone ki setting ke hisaab se a
 
 1. Upar right corner me apni photo par click karein.
 2. **Log out** chunein.
+
+### Tareekh, mahina ya samay chunna
+
+Jahan bhi tareekh bharni ho (jaise joining date, leave ki tareekh), us box par click karte hi ek chhota calendar khulta hai. Upar teer se mahina badlein aur din par click karein. Mahina chunne wale box me saal ke 12 mahine dikhte hain, aur samay wale box me ghante aur minute upar-neeche karke chunte hain. Chahein to box me seedha type bhi kar sakte hain. Galat tareekh hatani ho to box ke right me bane **x** par click karein. Calendar phone par bhi waisa hi dikhta hai.
 
 ### Menu ko chhota ya bada karna
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Http;
 
+use App\Enums\DesignationChangeType;
 use App\Enums\PayrollBucket;
 use App\Jobs\GenerateSalarySlips;
 use App\Models\Company;
@@ -17,11 +18,13 @@ use App\Models\SalaryBonus;
 use App\Models\SalaryDeduction;
 use App\Models\User;
 use App\Services\BorrowCalculationService;
+use App\Services\DesignationChangeService;
 use App\Services\EmployeeService;
 use App\Services\LeaveService;
 use App\Services\PayrollService;
 use App\Services\ShortHoursCalculationService;
 use App\Support\PayrollPeriod;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -53,6 +56,7 @@ class PageRenderingTest extends TestCase
             'edit employee' => ['/employees/{employee}/edit'],
             'departments' => ['/departments'],
             'designations' => ['/designations'],
+            'designation history' => ['/designation-changes?search=ra&type=promotion&from=2025-01-01&to=2026-12-31'],
             'documents' => ['/documents'],
             'documents filtered' => ['/documents?search=contract&employee_id={employee}'],
             'daily attendance' => ['/attendance?date=2026-09-10'],
@@ -185,6 +189,8 @@ class PageRenderingTest extends TestCase
             'designation_id' => $designation->id, 'reporting_manager_id' => $manager->id,
         ], 26000);
         $leaving = $this->createEmployee(['first_name' => 'Ravi', 'last_name' => 'Rao', 'department_id' => $department->id], 30000);
+        app(DesignationChangeService::class)->recordInitial($employee);
+        app(DesignationChangeService::class)->change($employee, Designation::factory()->create(['name' => 'Senior Engineer']), CarbonImmutable::parse('2026-09-01'), DesignationChangeType::Promotion, 'Annual review');
 
         Holiday::factory()->create(['name' => 'Founders Day', 'date' => '2026-09-16']);
         $this->markAttendance($employee, '2026-09-03', 'absent');

@@ -16,7 +16,7 @@ withDefaults(
         <div
             v-for="index in count"
             :key="index"
-            class="rounded-lg border bg-card p-5"
+            class="rounded-xl border bg-card p-5 shadow-xs"
         >
             <Skeleton class="h-4 w-40" />
             <Skeleton class="mt-2 h-3 w-56" />

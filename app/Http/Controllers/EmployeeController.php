@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Enums\BorrowStatus;
+use App\Enums\DesignationChangeType;
 use App\Enums\EmployeeStatus;
 use App\Enums\EmploymentType;
 use App\Enums\ExitType;
@@ -15,6 +16,7 @@ use App\Models\Employee;
 use App\Models\EmployeeBorrow;
 use App\Models\WorkShift;
 use App\Services\AttendanceCalculationService;
+use App\Services\DesignationChangeService;
 use App\Services\EmployeeService;
 use App\Services\LeaveService;
 use App\Services\SalaryRevisionService;
@@ -86,6 +88,7 @@ class EmployeeController extends Controller
         SalaryRevisionService $salaries,
         AttendanceCalculationService $attendance,
         LeaveService $leaves,
+        DesignationChangeService $designationChanges,
     ): Response {
         $employee->load(['department', 'designation', 'reportingManager', 'finalSettlement']);
         $today = $this->tenant()->today();
@@ -107,6 +110,7 @@ class EmployeeController extends Controller
                     'first_name', 'last_name', 'phone', 'email', 'address', 'city', 'state', 'country',
                     'postal_code', 'notes', 'exit_reason', 'exit_notes',
                 ]),
+                'designation_id' => $employee->designation_id,
                 'status_label' => $employee->status->label(),
                 'is_past' => $employee->isPast(),
                 'gender' => $employee->gender?->label(),
@@ -171,6 +175,9 @@ class EmployeeController extends Controller
                     'user' => $log->user?->name,
                     'created_at' => $log->created_at?->toIso8601String(),
                 ]),
+            'designationHistory' => $designationChanges->history($employee),
+            'designations' => Designation::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'designationChangeTypes' => DesignationChangeType::recordableOptions(),
             'exitTypes' => ExitType::options(),
             'today' => $today->toDateString(),
         ]);
@@ -204,7 +211,7 @@ class EmployeeController extends Controller
             ? [...$request->validated(), 'status' => EmployeeStatus::Past->value]
             : $request->validated();
 
-        $employees->update($employee, $data, $request->file('photo'));
+        $employees->update($employee, $data, $request->file('photo'), $request->user());
 
         $this->toast('Employee updated.');
 

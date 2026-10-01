@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
+import DatePicker from '@/components/DatePicker.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 
 /** The selected month as `YYYY-MM`. */
 const model = defineModel<string>({ required: true });
@@ -25,7 +25,13 @@ function shift(by: number): void {
         >
             <ChevronLeft />
         </Button>
-        <Input v-model="model" type="month" aria-label="Month" class="w-48" />
+        <DatePicker
+            v-model="model"
+            mode="month"
+            required
+            aria-label="Month"
+            class="w-44"
+        />
         <Button
             variant="outline"
             size="icon"

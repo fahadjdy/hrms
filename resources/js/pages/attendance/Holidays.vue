@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -235,10 +236,9 @@ const save = () =>
                         :error="form.errors.date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="holiday-date"
                             v-model="form.date"
-                            type="date"
                             required
                         />
                     </FormField>

@@ -5,6 +5,7 @@ import { computed } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataTable from '@/components/DataTable.vue';
 import type { DataTableColumn } from '@/components/DataTable.vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import InputError from '@/components/InputError.vue';
 import PageHeader from '@/components/PageHeader.vue';
@@ -240,10 +241,10 @@ const save = () =>
                         :error="form.errors.start_time"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="shift-start"
                             v-model="form.start_time"
-                            type="time"
+                            mode="time"
                             required
                         />
                     </FormField>
@@ -253,10 +254,10 @@ const save = () =>
                         :error="form.errors.end_time"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="shift-end"
                             v-model="form.end_time"
-                            type="time"
+                            mode="time"
                             required
                         />
                     </FormField>

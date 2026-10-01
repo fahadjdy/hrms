@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import ChoiceCards from '@/components/finance/ChoiceCards.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
@@ -247,10 +248,9 @@ function submit(): void {
                         :error="form.errors.borrow_date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="borrow-date"
                             v-model="form.borrow_date"
-                            type="date"
                             required
                         />
                     </FormField>
@@ -288,10 +288,10 @@ function submit(): void {
                             class="sm:max-w-xs"
                             required
                         >
-                            <Input
+                            <DatePicker
                                 id="borrow-disburse-period"
                                 v-model="form.disburse_period"
-                                type="month"
+                                mode="month"
                                 required
                             />
                         </FormField>
@@ -369,10 +369,10 @@ function submit(): void {
                         :error="form.errors.deduction_start_month"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="borrow-start-month"
                             v-model="form.deduction_start_month"
-                            type="month"
+                            mode="month"
                             required
                         />
                     </FormField>

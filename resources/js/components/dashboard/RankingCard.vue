@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import {
+    CalendarCheck,
+    CalendarOff,
+    CalendarX,
+    Clock,
+    HandCoins,
+    Timer,
+    Trophy,
+} from '@lucide/vue';
+import type { Component } from 'vue';
 import SectionCard from '@/components/SectionCard.vue';
 import { useChartFormat } from '@/composables/useChartFormat';
 import { show } from '@/routes/employees';
@@ -10,6 +20,15 @@ const props = defineProps<{
 }>();
 
 const { full } = useChartFormat();
+
+const ICONS: Record<string, Component> = {
+    highest_attendance: CalendarCheck,
+    highest_overtime: Timer,
+    most_hours: Clock,
+    most_leave: CalendarOff,
+    most_absent: CalendarX,
+    highest_borrow: HandCoins,
+};
 
 const print = (value: number): string => full(value, props.ranking.format);
 
@@ -22,7 +41,11 @@ const width = (value: number): string => {
 </script>
 
 <template>
-    <SectionCard :title="ranking.title" :description="ranking.metric">
+    <SectionCard
+        :title="ranking.title"
+        :description="ranking.metric"
+        :icon="ICONS[ranking.key] ?? Trophy"
+    >
         <p
             v-if="ranking.rows.length === 0"
             class="py-4 text-center text-sm text-muted-foreground"

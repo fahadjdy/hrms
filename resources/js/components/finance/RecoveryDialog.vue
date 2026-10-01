@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import { Button } from '@/components/ui/button';
@@ -160,10 +161,9 @@ function submit(): void {
                         :error="form.errors.date"
                         required
                     >
-                        <Input
+                        <DatePicker
                             id="recovery-date"
                             v-model="form.date"
-                            type="date"
                             :max="today"
                             required
                         />

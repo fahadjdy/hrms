@@ -57,7 +57,7 @@ class DashboardTest extends TestCase
                 ->where('value', 1)
                 ->where('format', 'number')
                 ->where('href', '/employees')
-                ->hasAll(['hint', 'delta', 'tone']))
+                ->hasAll(['hint', 'delta', 'tone', 'trend', 'progress']))
             ->where('today', '2026-10-01')
             ->where('filters.preset', 'current_month')
             ->where('filters.from', '2026-10-01')
@@ -123,6 +123,47 @@ class DashboardTest extends TestCase
                 'borrow_outstanding' => 15000.0,
                 'total_deductions' => 0.0,
             ]));
+    }
+
+    public function test_todays_figures_carry_a_share_of_active_employees_and_outstanding_borrow_its_recovery(): void
+    {
+        $company = $this->prepareCompany();
+        $present = $this->createEmployee();
+        $absent = $this->createEmployee();
+        $this->createEmployee();
+        $this->createEmployee();
+        $this->markAttendance($present, '2026-10-01', 'present');
+        $this->markAttendance($absent, '2026-10-01', 'absent');
+        $borrow = app(BorrowCalculationService::class)->create($present, [
+            'amount' => 20000, 'borrow_date' => '2026-08-01', 'monthly_deduction' => 5000,
+        ]);
+        app(BorrowCalculationService::class)->recover($borrow, 5000, CarbonImmutable::parse('2026-09-30'));
+
+        $response = $this->actingAs($this->adminOf($company))->get('/dashboard');
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('kpis.3.key', 'present_today')
+            ->where('kpis.3.progress', ['value' => 1, 'max' => 4, 'label' => 'of 4 active', 'tone' => 'positive'])
+            ->where('kpis.4.progress.value', 1)
+            ->where('kpis.4.progress.tone', 'negative')
+            ->where('kpis.0.progress', null)
+            ->where('kpis.10.key', 'borrow_outstanding')
+            ->where('kpis.10.progress', ['value' => 5000, 'max' => 20000, 'label' => 'recovered so far', 'tone' => 'positive'])
+            // The sparkline starts at the first month with a borrow given, August.
+            ->where('kpis.9.key', 'total_borrowed')
+            ->where('kpis.9.trend', [20000, 0, 0]));
+    }
+
+    public function test_figures_have_no_progress_or_sparkline_without_data(): void
+    {
+        $company = $this->prepareCompany();
+
+        $response = $this->actingAs($this->adminOf($company))->get('/dashboard');
+
+        $response->assertInertia(fn (Assert $page) => $page
+            ->where('kpis', fn ($kpis) => collect($kpis)->every(
+                fn ($kpi) => $kpi['progress'] === null && $kpi['trend'] === null,
+            )));
     }
 
     public function test_payroll_widgets_show_the_latest_calculated_payroll(): void

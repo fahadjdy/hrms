@@ -3,13 +3,16 @@
 namespace Tests\Feature\Services;
 
 use App\Enums\BorrowStatus;
+use App\Enums\DesignationChangeType;
 use App\Enums\EmployeeStatus;
 use App\Enums\ExitType;
 use App\Jobs\GenerateSalarySlips;
 use App\Models\Attendance;
 use App\Models\AuditLog;
+use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeBorrow;
+use App\Models\EmployeeDesignationChange;
 use App\Models\EmployeeLeave;
 use App\Models\EmployeeSalaryRevision;
 use App\Models\LeaveType;
@@ -66,6 +69,60 @@ class EmployeeServiceTest extends TestCase
         $this->assertSame('2026-09-01', $borrow->borrow_date->toDateString());
 
         $this->assertTrue(AuditLog::query()->where('action', 'employee.created')->where('employee_id', $employee->id)->exists());
+    }
+
+    public function test_creating_an_employee_with_a_designation_opens_their_designation_history(): void
+    {
+        $this->prepareCompany();
+        $designation = Designation::factory()->create(['name' => 'Junior Developer']);
+
+        $employee = $this->service()->create([
+            'employee_code' => 'EMP-0002', 'first_name' => 'Asha', 'joining_date' => '2026-09-01',
+            'employment_type' => 'full_time', 'status' => 'active', 'designation_id' => $designation->id,
+        ]);
+
+        $change = EmployeeDesignationChange::query()->where('employee_id', $employee->id)->sole();
+        $this->assertSame(DesignationChangeType::Initial, $change->type);
+        $this->assertNull($change->from_designation_id);
+        $this->assertSame($designation->id, $change->to_designation_id);
+        $this->assertSame('2026-09-01', $change->effective_date->toDateString());
+    }
+
+    public function test_changing_the_designation_on_the_edit_form_is_recorded_in_the_history(): void
+    {
+        $this->prepareCompany();
+        $junior = Designation::factory()->create(['name' => 'Junior Developer']);
+        $senior = Designation::factory()->create(['name' => 'Senior Developer']);
+        $employee = $this->service()->create([
+            'employee_code' => 'EMP-0003', 'first_name' => 'Asha', 'joining_date' => '2026-09-01',
+            'employment_type' => 'full_time', 'status' => 'active', 'designation_id' => $junior->id,
+        ]);
+
+        $this->service()->update($employee, ['first_name' => 'Asha', 'designation_id' => $senior->id]);
+
+        $this->assertSame($senior->id, $employee->refresh()->designation_id);
+        $latest = EmployeeDesignationChange::query()->where('employee_id', $employee->id)->latest('id')->first();
+        $this->assertSame(DesignationChangeType::Change, $latest->type);
+        $this->assertSame($junior->id, $latest->from_designation_id);
+        $this->assertSame('2026-10-01', $latest->effective_date->toDateString());
+        $this->assertSame('Changed while editing the employee', $latest->reason);
+        $this->assertSame(2, EmployeeDesignationChange::query()->where('employee_id', $employee->id)->count());
+    }
+
+    public function test_editing_without_touching_the_designation_adds_nothing_to_the_history(): void
+    {
+        $this->prepareCompany();
+        $junior = Designation::factory()->create(['name' => 'Junior Developer']);
+        $employee = $this->service()->create([
+            'employee_code' => 'EMP-0004', 'first_name' => 'Asha', 'joining_date' => '2026-09-01',
+            'employment_type' => 'full_time', 'status' => 'active', 'designation_id' => $junior->id,
+        ]);
+
+        $this->service()->update($employee, ['first_name' => 'Aasha', 'designation_id' => $junior->id]);
+        $this->service()->update($employee, ['first_name' => 'Aasha', 'designation_id' => null]);
+
+        $this->assertNull($employee->refresh()->designation_id);
+        $this->assertSame(1, EmployeeDesignationChange::query()->where('employee_id', $employee->id)->count());
     }
 
     public function test_exit_turns_an_active_employee_into_a_past_employee_and_keeps_all_history(): void

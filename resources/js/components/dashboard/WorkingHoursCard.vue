@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Clock } from '@lucide/vue';
 import { computed } from 'vue';
 import BarChart from '@/components/charts/BarChart.vue';
 import ChartCard from '@/components/charts/ChartCard.vue';
@@ -34,6 +35,7 @@ const tiles = computed(() => [
 
 <template>
     <ChartCard
+        :icon="Clock"
         title="Working hours"
         description="Required against worked hours, and worked hours by department"
         :empty="hours.required_minutes === 0 && hours.worked_minutes === 0"
@@ -49,9 +51,15 @@ const tiles = computed(() => [
         }"
     >
         <dl class="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-4">
-            <div v-for="tile in tiles" :key="tile.label">
+            <div
+                v-for="tile in tiles"
+                :key="tile.label"
+                class="rounded-lg bg-muted/50 px-3 py-2.5"
+            >
                 <dt class="text-xs text-muted-foreground">{{ tile.label }}</dt>
-                <dd class="text-base font-semibold">{{ tile.value }}</dd>
+                <dd class="tabular text-base font-semibold">
+                    {{ tile.value }}
+                </dd>
             </div>
         </dl>
 

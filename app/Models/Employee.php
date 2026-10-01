@@ -12,6 +12,7 @@ use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,6 +52,7 @@ use Illuminate\Support\Facades\Storage;
  * @property-read string $full_name
  * @property-read Department|null $department
  * @property-read Designation|null $designation
+ * @property-read Collection<int, EmployeeDesignationChange> $designationChanges
  */
 #[Fillable([
     'employee_code', 'first_name', 'last_name', 'date_of_birth', 'gender', 'phone', 'email',
@@ -198,6 +200,14 @@ class Employee extends Model
     public function reportingManager(): BelongsTo
     {
         return $this->belongsTo(self::class, 'reporting_manager_id');
+    }
+
+    /**
+     * @return HasMany<EmployeeDesignationChange, $this>
+     */
+    public function designationChanges(): HasMany
+    {
+        return $this->hasMany(EmployeeDesignationChange::class);
     }
 
     /**

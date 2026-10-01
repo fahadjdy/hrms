@@ -10,6 +10,7 @@ use App\Http\Controllers\BorrowRecoveryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DeductionController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DesignationChangeController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\EmployeeAttendanceController;
 use App\Http\Controllers\EmployeeController;
@@ -67,6 +68,7 @@ Route::middleware('can:employees.manage')->group(function () {
     Route::post('employees/{employee}/exit', [EmployeeExitController::class, 'store'])->name('employees.exit.store');
     Route::delete('employees/{employee}/exit', [EmployeeExitController::class, 'destroy'])->name('employees.exit.destroy');
     Route::put('employees/{employee}/shift', [EmployeeShiftController::class, 'update'])->name('employees.shift.update');
+    Route::post('employees/{employee}/designation-changes', [DesignationChangeController::class, 'store'])->name('employees.designation-changes.store');
     Route::post('employees/{employee}/documents', [EmployeeDocumentController::class, 'store'])->name('employees.documents.store');
     Route::delete('documents/{document}', [EmployeeDocumentController::class, 'destroy'])->name('documents.destroy');
 
@@ -84,6 +86,7 @@ Route::middleware('can:employees.view')->group(function () {
     Route::get('employees/{employee}', [EmployeeController::class, 'show'])->name('employees.show');
     Route::get('departments', [DepartmentController::class, 'index'])->name('departments.index');
     Route::get('designations', [DesignationController::class, 'index'])->name('designations.index');
+    Route::get('designation-changes', [DesignationChangeController::class, 'index'])->name('designation-changes.index');
     Route::get('documents', [EmployeeDocumentController::class, 'index'])->name('documents.index');
     Route::get('documents/{document}', [EmployeeDocumentController::class, 'show'])->name('documents.show');
 });

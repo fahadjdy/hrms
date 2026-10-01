@@ -108,26 +108,43 @@ class DashboardService
         $netPayable = $payroll !== null ? $this->payrollItemSum($payroll, 'net_payable') : 0.0;
         $previousNet = $previousPayroll !== null ? $this->payrollItemSum($previousPayroll, 'net_payable') : null;
 
+        $active = (int) $employees->current_count;
+        $ofActive = fn (int $count, string $tone): ?array => $this->progress($count, $active, "of {$active} active", $tone);
+        $payrollTrend = $this->payrollTrend();
+        $present = $this->presentCount($todayCounts);
+        $absent = $todayCounts[AttendanceStatus::Absent->value] ?? 0;
+        $onLeave = ($todayCounts[AttendanceStatus::PaidLeave->value] ?? 0) + ($todayCounts[AttendanceStatus::UnpaidLeave->value] ?? 0);
+        $late = $todayCounts[AttendanceStatus::Late->value] ?? 0;
+
         return [
             $this->kpi('total_employees', 'Total Employees', (int) $employees->total, 'number', 'Everyone on record, current and past', route: 'employees.index'),
             $this->kpi('active_employees', 'Active Employees', (int) $employees->current_count, 'number',
                 $employees->joined_this_month > 0 ? "{$employees->joined_this_month} joined this month" : 'Currently working at the company',
                 route: 'employees.index'),
             $this->kpi('past_employees', 'Past Employees', (int) $employees->past_count, 'number', 'Left the company; history is kept', route: 'employees.past'),
-            $this->kpi('present_today', 'Present Today', $this->presentCount($todayCounts), 'number', 'Includes late, short hours, WFH and half days', tone: 'positive', route: 'attendance.index'),
-            $this->kpi('absent_today', 'Absent Today', $todayCounts[AttendanceStatus::Absent->value] ?? 0, 'number', 'Marked absent today', tone: 'negative', route: 'attendance.index', query: ['status' => 'absent']),
-            $this->kpi('on_leave_today', 'On Leave', ($todayCounts[AttendanceStatus::PaidLeave->value] ?? 0) + ($todayCounts[AttendanceStatus::UnpaidLeave->value] ?? 0), 'number', 'Paid and unpaid leave today', tone: 'neutral', route: 'leaves.index'),
-            $this->kpi('late_today', 'Late Today', $todayCounts[AttendanceStatus::Late->value] ?? 0, 'number', 'Arrived after the grace period', tone: 'warning', route: 'attendance.index', query: ['status' => 'late']),
+            $this->kpi('present_today', 'Present Today', $present, 'number', 'Includes late, short hours, WFH and half days', tone: 'positive', route: 'attendance.index',
+                progress: $ofActive($present, 'positive')),
+            $this->kpi('absent_today', 'Absent Today', $absent, 'number', 'Marked absent today', tone: 'negative', route: 'attendance.index', query: ['status' => 'absent'],
+                progress: $ofActive($absent, 'negative')),
+            $this->kpi('on_leave_today', 'On Leave', $onLeave, 'number', 'Paid and unpaid leave today', tone: 'info', route: 'leaves.index',
+                progress: $ofActive($onLeave, 'info')),
+            $this->kpi('late_today', 'Late Today', $late, 'number', 'Arrived after the grace period', tone: 'warning', route: 'attendance.index', query: ['status' => 'late'],
+                progress: $ofActive($late, 'warning')),
             $this->kpi('current_payroll', $payroll !== null ? "Payroll - {$payroll->label()}" : 'Current Month Payroll', $netPayable, 'money',
                 $payroll !== null ? "Net payable - {$payroll->status->label()}" : 'No payroll has been run yet',
                 delta: $this->delta($netPayable, $previousNet, 'vs previous payroll'),
-                route: 'payroll.index'),
+                route: 'payroll.index',
+                trend: $this->sparkline(array_column($payrollTrend, 'net'))),
             $this->kpi('total_overtime', 'Total Overtime', $overtime, 'money', 'Approved and paid overtime in the selected period',
                 delta: $this->delta($overtime, $previousOvertime, 'vs previous period'),
-                route: 'overtime.index'),
-            $this->kpi('total_borrowed', 'Total Borrowed', $borrowed, 'money', 'All borrow and advance ever issued', route: 'borrows.index'),
-            $this->kpi('borrow_outstanding', 'Borrow Outstanding', $outstanding, 'money', 'Still owed by employees', tone: $outstanding > 0 ? 'warning' : 'neutral', route: 'borrows.index', query: ['status' => 'active']),
-            $this->kpi('total_deductions', 'Total Deductions', $deductions, 'money', $payroll !== null ? "All deductions in {$payroll->label()}" : 'No payroll has been run yet', route: 'payroll.reports'),
+                route: 'overtime.index',
+                trend: $this->sparkline(array_column($payrollTrend, 'overtime'))),
+            $this->kpi('total_borrowed', 'Total Borrowed', $borrowed, 'money', 'All borrow and advance ever issued', route: 'borrows.index',
+                trend: $this->sparkline(array_column($this->borrowTrend(), 'given'))),
+            $this->kpi('borrow_outstanding', 'Borrow Outstanding', $outstanding, 'money', 'Still owed by employees', tone: $outstanding > 0 ? 'warning' : 'neutral', route: 'borrows.index', query: ['status' => 'active'],
+                progress: $this->progress($borrowed - $outstanding, $borrowed, 'recovered so far', 'positive')),
+            $this->kpi('total_deductions', 'Total Deductions', $deductions, 'money', $payroll !== null ? "All deductions in {$payroll->label()}" : 'No payroll has been run yet', route: 'payroll.reports',
+                trend: $this->sparkline(array_column($payrollTrend, 'deductions'))),
         ];
     }
 
@@ -538,7 +555,7 @@ class DashboardService
     }
 
     /**
-     * @return list<array{month: string, label: string, gross: float, net: float, overtime: float}>
+     * @return list<array{month: string, label: string, gross: float, net: float, overtime: float, deductions: float}>
      */
     private function payrollTrend(): array
     {
@@ -555,6 +572,7 @@ class DashboardService
                 ->selectRaw('sum(payroll_items.gross_salary) as gross')
                 ->selectRaw('sum(payroll_items.net_payable - payroll_items.borrow_given) as net')
                 ->selectRaw('sum(payroll_items.overtime_amount) as overtime')
+                ->selectRaw('sum(payroll_items.attendance_deduction + payroll_items.unpaid_leave_deduction + payroll_items.short_hours_deduction + payroll_items.borrow_recovery + payroll_items.other_deductions) as deductions')
                 ->groupBy('payrolls.period_year', 'payrolls.period_month')
                 ->get()
                 ->keyBy(fn (object $row): string => sprintf('%04d-%02d', $row->year, $row->month));
@@ -565,6 +583,7 @@ class DashboardService
                 'gross' => (float) ($rows[$month['key']]->gross ?? 0),
                 'net' => (float) ($rows[$month['key']]->net ?? 0),
                 'overtime' => (float) ($rows[$month['key']]->overtime ?? 0),
+                'deductions' => (float) ($rows[$month['key']]->deductions ?? 0),
             ], $months);
         });
     }
@@ -785,6 +804,8 @@ class DashboardService
     /**
      * @param  array<string, mixed>  $query
      * @param  array{value: float, direction: string, label: string}|null  $delta
+     * @param  list<float>|null  $trend  monthly values, oldest first, for a sparkline
+     * @param  array{value: float, max: float, label: string, tone: string}|null  $progress
      * @return array<string, mixed>
      */
     private function kpi(
@@ -797,6 +818,8 @@ class DashboardService
         string $tone = 'neutral',
         ?string $route = null,
         array $query = [],
+        ?array $trend = null,
+        ?array $progress = null,
     ): array {
         return [
             'key' => $key,
@@ -807,6 +830,43 @@ class DashboardService
             'delta' => $delta,
             'tone' => $tone,
             'href' => $route !== null ? route($route, $query, false) : null,
+            'trend' => $trend,
+            'progress' => $progress,
+        ];
+    }
+
+    /**
+     * Monthly values for a sparkline, from the first month that has any. Fewer
+     * than two such months make no line, so there is no sparkline then.
+     *
+     * @param  list<float>  $values
+     * @return list<float>|null
+     */
+    private function sparkline(array $values): ?array
+    {
+        while ($values !== [] && $values[0] == 0.0) {
+            array_shift($values);
+        }
+
+        return count($values) >= 2 ? $values : null;
+    }
+
+    /**
+     * A part of a whole for a progress bar; nothing when the whole is empty.
+     *
+     * @return array{value: float, max: float, label: string, tone: string}|null
+     */
+    private function progress(int|float $value, int|float $max, string $label, string $tone): ?array
+    {
+        if ($max <= 0) {
+            return null;
+        }
+
+        return [
+            'value' => (float) max(0, min($value, $max)),
+            'max' => (float) $max,
+            'label' => $label,
+            'tone' => $tone,
         ];
     }
 
@@ -839,7 +899,7 @@ class DashboardService
     private function cached(string $name, Closure $callback): mixed
     {
         $key = sprintf(
-            'company:%d:dashboard:%s:%s',
+            'company:%d:dashboard:v2:%s:%s',
             $this->tenant->require()->id,
             $name,
             md5(implode('|', [(string) $this->departmentId, (string) $this->employeeId, (string) $this->employeeStatus, $this->tenant->today()->format('Y-m')])),
