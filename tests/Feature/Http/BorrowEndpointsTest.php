@@ -10,6 +10,7 @@ use App\Models\Company;
 use App\Models\Employee;
 use App\Models\EmployeeBorrow;
 use App\Services\BorrowCalculationService;
+use App\Services\PayrollService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -91,6 +92,23 @@ class BorrowEndpointsTest extends TestCase
         ]));
 
         $response->assertSessionHasErrors(['disburse_period' => 'Choose the salary month this borrow is paid with.']);
+        $this->assertSame(0, EmployeeBorrow::query()->count());
+    }
+
+    public function test_borrow_cannot_be_paid_with_a_salary_month_that_is_already_finalized(): void
+    {
+        $company = $this->prepareCompany();
+        $employee = $this->createEmployee([], 26000);
+        $admin = $this->adminOf($company);
+        $payrolls = app(PayrollService::class);
+        $payrolls->finalize($payrolls->calculate($payrolls->create(2026, 9)), $admin);
+
+        $response = $this->actingAs($admin)->post('/borrows', $this->payload($employee->id, [
+            'disbursement_method' => 'with_salary',
+            'disburse_period' => '2026-09',
+        ]));
+
+        $response->assertSessionHasErrors('disburse_period');
         $this->assertSame(0, EmployeeBorrow::query()->count());
     }
 

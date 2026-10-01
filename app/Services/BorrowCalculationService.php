@@ -8,6 +8,7 @@ use App\Models\BorrowInstallment;
 use App\Models\BorrowTransaction;
 use App\Models\Employee;
 use App\Models\EmployeeBorrow;
+use App\Models\Payroll;
 use App\Models\PayrollItem;
 use App\Models\User;
 use App\Support\Money;
@@ -84,6 +85,12 @@ class BorrowCalculationService
         $disbursePeriod = $withSalary
             ? CarbonImmutable::parse($data['disburse_period'] ?? $borrowDate->toDateString())->startOfMonth()
             : null;
+
+        if ($disbursePeriod !== null && $this->payrollIsLocked($disbursePeriod)) {
+            throw ValidationException::withMessages([
+                'disburse_period' => "The payroll for {$disbursePeriod->format('F Y')} is already finalized, so this borrow could never be paid with it. Choose a later salary month or reopen that payroll.",
+            ]);
+        }
 
         return DB::transaction(function () use (
             $employee, $data, $user, $kind, $amount, $opening, $withSalary, $borrowDate, $installments, $monthly, $startMonth, $disbursePeriod,
@@ -554,6 +561,20 @@ class BorrowCalculationService
         }
 
         return $allocations;
+    }
+
+    /**
+     * Whether the month's payroll is finalized. A borrow paid with salary is
+     * handed over when that payroll is finalized, which can no longer happen.
+     */
+    private function payrollIsLocked(CarbonImmutable $month): bool
+    {
+        $payroll = Payroll::query()
+            ->where('period_year', $month->year)
+            ->where('period_month', $month->month)
+            ->first();
+
+        return $payroll !== null && $payroll->isLocked();
     }
 
     private function transaction(

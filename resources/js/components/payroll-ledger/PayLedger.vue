@@ -73,8 +73,10 @@ const hasAdvance = computed(() => isUsed('borrow_given'));
 const signed = (amount: number | string, sign: 1 | -1): string =>
     money(Number(amount) * sign);
 
-const adjustment = (amount: number | string): string =>
-    Number(amount) === 0 ? '' : money(Number(amount), { signed: true });
+// Signed like the amounts beside it, so system + adjustment = final on every
+// row: recovering 1,000 less of a borrow reads -3,000, +1,000, -2,000.
+const adjustment = (amount: number | string, sign: 1 | -1): string =>
+    Number(amount) === 0 ? '' : money(Number(amount) * sign, { signed: true });
 </script>
 
 <template>
@@ -140,7 +142,12 @@ const adjustment = (amount: number | string): string =>
                                         section.sign,
                                     )
                                 }}, adjusted
-                                {{ adjustment(buckets[bucket].adjustment) }}
+                                {{
+                                    adjustment(
+                                        buckets[bucket].adjustment,
+                                        section.sign,
+                                    )
+                                }}
                             </span>
                         </th>
                         <td class="hidden px-3 py-2 text-right sm:table-cell">
@@ -154,7 +161,12 @@ const adjustment = (amount: number | string): string =>
                                     : ''
                             "
                         >
-                            {{ adjustment(buckets[bucket].adjustment) }}
+                            {{
+                                adjustment(
+                                    buckets[bucket].adjustment,
+                                    section.sign,
+                                )
+                            }}
                         </td>
                         <td class="py-2 pl-3 text-right font-medium">
                             {{ signed(buckets[bucket].final, section.sign) }}
