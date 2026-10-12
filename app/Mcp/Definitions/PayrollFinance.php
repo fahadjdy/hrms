@@ -134,7 +134,7 @@ return [
         'name' => 'calculate_payroll',
         'route' => 'payroll.calculate',
         'title' => 'Calculate payroll',
-        'description' => 'Calculate (or recalculate) every current employee\'s pay for the payroll from salary, attendance, leave, short hours, approved overtime, bonuses, deductions and borrow installments. Step 2 of create -> calculate -> review -> adjust -> finalize -> slips. Fails if the payroll is finalized (locked). For large companies the calculation is queued; re-read get_payroll after a moment. Requires permission payroll.manage.',
+        'description' => 'Calculate (or recalculate) every current employee\'s pay for the payroll from salary, attendance, leave, short hours, approved overtime, bonuses, deductions and borrow installments. Step 2 of create -> calculate -> review -> adjust -> finalize -> slips. Fails if the payroll is finalized (locked). While it runs the payroll is in draft (is_calculating is true) and cannot be reviewed, adjusted or finalized. For large companies the calculation is queued; re-read get_payroll after a moment. If a salary changed during the run the payroll stays in draft: calculate again. Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => false,
         'params' => [
@@ -158,7 +158,7 @@ return [
         'name' => 'add_payroll_adjustment',
         'route' => 'payroll.items.adjustments.store',
         'title' => 'Add payroll adjustment',
-        'description' => 'Add a manual signed adjustment to one bucket of an employee\'s payroll item (step 4: adjust, before finalize). The amount is a change to the bucket: +500 on a deduction bucket deducts 500 more, -500 deducts 500 less; a bucket cannot go negative, and borrow_recovery cannot exceed the employee\'s outstanding borrow. Adjusting moves the payroll to status adjusted. A new borrow (borrow_given) cannot be adjusted here - change the borrow itself. Fails on a finalized payroll. Requires permission payroll.manage.',
+        'description' => 'Add a manual signed adjustment to one bucket of an employee\'s payroll item (step 4: adjust, before finalize). The amount is a change to the bucket: +500 on a deduction bucket deducts 500 more, -500 deducts 500 less; a bucket cannot go negative, and borrow_recovery cannot exceed the employee\'s outstanding borrow. Adjusting moves the payroll to status adjusted. Refused while the payroll is draft (e.g. after a salary change reset it): run calculate_payroll first. A new borrow (borrow_given) cannot be adjusted here - change the borrow itself. Fails on a finalized payroll. Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => false,
         'params' => [
@@ -175,7 +175,7 @@ return [
         'name' => 'delete_payroll_adjustment',
         'route' => 'payroll.items.adjustments.destroy',
         'title' => 'Remove payroll adjustment',
-        'description' => 'Remove a manual adjustment from a payroll item (not allowed on a finalized payroll). Requires permission payroll.manage.',
+        'description' => 'Remove a manual adjustment from a payroll item (not allowed on a finalized payroll, nor on a draft one: run calculate_payroll first). Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => true,
         'params' => [
@@ -243,7 +243,7 @@ return [
         'name' => 'create_salary_revision',
         'route' => 'employees.salary.store',
         'title' => 'Revise employee salary',
-        'description' => 'Record a new salary revision for an employee, effective from a date. A salary change is normally a new revision (use update_salary_revision only to correct an existing one), always with the full component list (send all components, not just the changed ones; call get_employee_salary for the current ones). Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
+        'description' => 'Record a new salary revision for an employee, effective from a date. A salary change is normally a new revision (use update_salary_revision only to correct an existing one), always with the full component list (send all components, not just the changed ones; call get_employee_salary for the current ones). Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Refused when the new salary would take effect on days a finalized payroll or a finalized/paid final settlement already paid (reopen_payroll first; a settlement cannot be reopened). Open payrolls (not finalized) that include the employee and cover the affected days are moved back to draft and must be recalculated with calculate_payroll before they can be finalized; the flash message names them. Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => false,
         'params' => [
@@ -272,7 +272,7 @@ return [
         'name' => 'update_salary_revision',
         'route' => 'employees.salary.update',
         'title' => 'Edit a salary revision',
-        'description' => 'Correct an existing salary revision of an employee (effective date, components, reason, notes). Send the full revision: every component (call get_employee_salary for the current values and the revision id), the effective date and the reason. Refused when a finalized payroll already paid with this salary (reopen_payroll first); a draft payroll covering the change must be recalculated afterwards (calculate_payroll), and the flash message says which. The edit is recorded in the audit log, and the "previous gross" of neighbouring revisions is recomputed. Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
+        'description' => 'Correct an existing salary revision of an employee (effective date, components, reason, notes). Send the full revision: every component (call get_employee_salary for the current values and the revision id), the effective date and the reason. A change of effective date or components is refused when the affected days (from the earlier of the old and new date up to the next revision) were already paid by a finalized payroll (reopen_payroll first) or a finalized/paid final settlement (cannot be undone); get_employee_salary shows is_locked + locked_reason per revision. Changing only reason/notes (same date, same components) is always allowed. Open payrolls (not finalized) that include the employee and cover the affected days are moved back to draft and must be recalculated with calculate_payroll before finalizing; the flash message names them. The edit is recorded in the audit log, and the "previous gross" of neighbouring revisions is recomputed. Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => false,
         'params' => [
@@ -708,7 +708,7 @@ return [
         'name' => 'finalize_final_settlement',
         'route' => 'final-settlements.finalize',
         'title' => 'Finalize final settlement',
-        'description' => 'Lock the draft final settlement and recover the employee\'s outstanding borrows through the borrow ledger (settlement transactions). Irreversible. Next step: mark_final_settlement_paid. Requires permission settlements.manage.',
+        'description' => 'Lock the draft final settlement and recover the employee\'s outstanding borrows through the borrow ledger (settlement transactions). Irreversible. The figures are recalculated first; if they changed since the draft was last shown (e.g. a salary, attendance or borrow change), it is refused: call get_final_settlement to review the updated draft, then finalize again. Next step: mark_final_settlement_paid. Requires permission settlements.manage.',
         'read_only' => false,
         'destructive' => true,
         'params' => [

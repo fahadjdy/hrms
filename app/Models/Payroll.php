@@ -28,6 +28,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property float $total_net_payable
  * @property string|null $notes
  * @property CarbonImmutable|null $calculated_at
+ * @property CarbonImmutable|null $calculation_started_at set while a calculation runs; cleared by a salary change
  * @property CarbonImmutable|null $finalized_at
  * @property int|null $finalized_by
  * @property CarbonImmutable|null $reopened_at
@@ -66,9 +67,22 @@ class Payroll extends Model
             'total_borrow_recovery' => 'float',
             'total_net_payable' => 'float',
             'calculated_at' => 'datetime',
+            'calculation_started_at' => 'datetime',
             'finalized_at' => 'datetime',
             'reopened_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Minutes after which a calculation marker is treated as a dead run: the
+     * CalculatePayroll job times out after 30 minutes.
+     */
+    public const int CALCULATION_STALE_AFTER_MINUTES = 35;
+
+    public function isCalculating(): bool
+    {
+        return $this->calculation_started_at !== null
+            && $this->calculation_started_at->gt(now()->subMinutes(self::CALCULATION_STALE_AFTER_MINUTES));
     }
 
     public function isLocked(): bool

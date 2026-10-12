@@ -122,7 +122,7 @@ trait InteractsWithCompanies
                 ['name' => 'Basic', 'type' => 'earning', 'amount' => $basic],
                 ...$extraComponents,
             ],
-        ]);
+        ])['revision'];
     }
 
     /**

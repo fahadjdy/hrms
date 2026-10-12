@@ -129,11 +129,62 @@ class FinalSettlementService
 
     /**
      * Lock the settlement and recover the outstanding borrows through the ledger.
+     *
+     * The settlement is recalculated from the current data inside the locked
+     * transaction (the employee row is locked, as salary changes do), so it never
+     * locks figures computed from an older salary history. When the recalculated
+     * figures differ from the ones the admin reviewed, nothing is finalized and
+     * the admin is asked to review the updated settlement.
      */
     public function finalize(FinalSettlement $settlement, ?User $user = null): FinalSettlement
     {
         $this->guardDraft($settlement);
 
+        DB::transaction(function () use ($settlement, $user): void {
+            Employee::query()->whereKey($settlement->employee_id)->lockForUpdate()->value('id');
+            $locked = FinalSettlement::query()->whereKey($settlement->id)->with('employee')->lockForUpdate()->firstOrFail();
+            $this->guardDraft($locked);
+
+            $reviewed = $this->figures($locked);
+            $current = $this->prepare($locked->employee, $user);
+
+            if ($this->figures($current) !== $reviewed) {
+                throw ValidationException::withMessages([
+                    'settlement' => 'The settlement figures changed since they were last calculated (for example after a salary, attendance or borrow change). Review the updated settlement and finalize it again.',
+                ]);
+            }
+
+            $this->post($current, $user);
+        });
+
+        return $settlement->refresh();
+    }
+
+    /**
+     * The figures an admin reviews before finalizing, for comparison.
+     *
+     * @return array<string, string>
+     */
+    private function figures(FinalSettlement $settlement): array
+    {
+        $figures = [
+            'period_start' => $settlement->period_start->toDateString(),
+            'period_end' => $settlement->period_end->toDateString(),
+        ];
+
+        foreach (['last_salary', 'overtime_amount', 'bonus_amount', 'other_earnings_amount', 'unpaid_leave_deduction',
+            'short_hours_deduction', 'outstanding_borrow', 'other_deductions', 'adjustment_amount', 'net_amount'] as $field) {
+            $figures[$field] = number_format((float) $settlement->getAttribute($field), 2, '.', '');
+        }
+
+        return $figures;
+    }
+
+    /**
+     * Post a settlement whose figures are current: borrow recoveries, paid overtime, the lock.
+     */
+    private function post(FinalSettlement $settlement, ?User $user): FinalSettlement
+    {
         return DB::transaction(function () use ($settlement, $user): FinalSettlement {
             $today = $this->tenant->today();
             $lines = collect(PayrollCalculationService::linesOf($settlement->breakdown));

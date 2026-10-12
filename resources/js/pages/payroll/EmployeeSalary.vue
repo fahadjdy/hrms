@@ -126,10 +126,8 @@ function startRevision(): void {
 }
 
 function startEdit(revision: HistoryRevision): void {
-    if (revision.is_locked) {
-        return;
-    }
-
+    // Locked revisions still open: only reason and notes can change, and the
+    // date and components are sent back exactly as loaded.
     form.effective_date = revision.effective_date;
     form.reason = revision.reason ?? '';
     form.notes = revision.notes ?? '';
@@ -165,6 +163,9 @@ function submit(): void {
 
     form.post(store.url(props.employee.id), options);
 }
+
+/** A finalized payroll or settlement used it: only reason and notes can change. */
+const payLocked = computed(() => editing.value?.is_locked === true);
 
 const errors = computed(
     () => form.errors as Record<string, string | undefined>,
@@ -395,8 +396,7 @@ const changePercent = (revision: Revision): string | null =>
                                 variant="ghost"
                                 size="sm"
                                 class="ml-auto h-7 px-2"
-                                :disabled="revision.is_locked"
-                                :aria-label="`Edit revision effective ${date(revision.effective_date)}`"
+                                :aria-label="`${revision.is_locked ? 'Edit notes of' : 'Edit'} revision effective ${date(revision.effective_date)}`"
                                 :aria-describedby="
                                     revision.is_locked
                                         ? `revision-${revision.id}-locked`
@@ -411,7 +411,7 @@ const changePercent = (revision: Revision): string | null =>
                             >
                                 <Lock v-if="revision.is_locked" />
                                 <Pencil v-else />
-                                Edit
+                                {{ revision.is_locked ? 'Edit notes' : 'Edit' }}
                             </Button>
                         </div>
                         <p
@@ -571,9 +571,11 @@ const changePercent = (revision: Revision): string | null =>
                     <DialogDescription v-if="editing">
                         Corrects the revision effective
                         {{ date(editing.effective_date) }} for
-                        {{ employee.name }}. The change is recorded in the audit
-                        log, and any draft payroll covering this period needs to
-                        be recalculated afterwards.
+                        {{ employee.name }}. Every change is recorded in the
+                        audit log. Changing the date or components moves open
+                        payrolls covering those days back to draft, so they need
+                        to be recalculated. A locked revision allows only the
+                        reason and notes to change.
                     </DialogDescription>
                     <DialogDescription v-else>
                         This adds a new revision from the effective date. The
@@ -588,6 +590,22 @@ const changePercent = (revision: Revision): string | null =>
                     title="This revision cannot be edited"
                 />
 
+                <div
+                    v-if="payLocked"
+                    class="flex items-start gap-2 rounded-md border bg-warning-soft px-3 py-2 text-sm text-warning"
+                    role="note"
+                >
+                    <Lock class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+                    <p>
+                        {{
+                            editing?.locked_reason ??
+                            'A finalized payroll or settlement used this revision.'
+                        }}
+                        The effective date and components cannot change; you can
+                        still correct the reason and notes.
+                    </p>
+                </div>
+
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField
                         label="Effective date"
@@ -600,6 +618,7 @@ const changePercent = (revision: Revision): string | null =>
                             id="revision-effective-date"
                             v-model="form.effective_date"
                             :min="employee.joining_date"
+                            :disabled="payLocked"
                             required
                         />
                     </FormField>
@@ -625,6 +644,7 @@ const changePercent = (revision: Revision): string | null =>
                         v-model="form.components"
                         :errors="errors"
                         id-prefix="revision-component"
+                        :disabled="payLocked"
                     />
                 </fieldset>
 

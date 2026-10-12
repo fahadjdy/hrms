@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Throwable;
 
 /**
  * The payroll workflow: Draft -> Calculated -> Admin Review -> Adjusted -> Finalized.
@@ -71,11 +72,47 @@ class PayrollService
     /**
      * Calculate (or recalculate) every eligible employee. Manual adjustments
      * already made are kept and applied on top of the new system amounts.
+     *
+     * The payroll is Draft while it is calculated, so it cannot be adjusted,
+     * reviewed or finalized half-written. `calculation_started_at` marks the run;
+     * a salary change meanwhile clears it (SalaryRevisionService), and the run
+     * then leaves the payroll in Draft instead of marking stale figures as
+     * calculated.
      */
     public function calculate(Payroll $payroll): Payroll
     {
-        $this->guardUnlocked($payroll);
+        DB::transaction(function () use ($payroll): void {
+            $fresh = Payroll::query()->whereKey($payroll->id)->lockForUpdate()->firstOrFail();
+            $this->guardUnlocked($fresh);
 
+            $fresh->status = PayrollStatus::Draft;
+            $fresh->calculation_started_at = now();
+            $fresh->save();
+
+            $payroll->setRawAttributes($fresh->getAttributes(), true);
+        });
+
+        try {
+            return $this->runCalculation($payroll);
+        } catch (Throwable $e) {
+            // The payroll stays in Draft, but no longer looks "calculating".
+            $this->clearCalculationMarker($payroll);
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Clear the running-calculation marker, e.g. after a failed or killed run.
+     */
+    public function clearCalculationMarker(Payroll $payroll): void
+    {
+        Payroll::query()->whereKey($payroll->id)->whereNotNull('calculation_started_at')->update(['calculation_started_at' => null]);
+        $payroll->calculation_started_at = null;
+    }
+
+    private function runCalculation(Payroll $payroll): Payroll
+    {
         $period = $payroll->period();
         $calculatedIds = [];
 
@@ -115,11 +152,37 @@ class PayrollService
             ->whereIn('payroll_item_id', PayrollItem::query()->where('payroll_id', $payroll->id)->select('id'))
             ->exists();
 
-        $payroll->status = $hasAdjustments ? PayrollStatus::Adjusted : PayrollStatus::Calculated;
-        $payroll->calculated_at = now();
-        $payroll->save();
+        $completed = DB::transaction(function () use ($payroll, $hasAdjustments): bool {
+            $fresh = Payroll::query()->whereKey($payroll->id)->lockForUpdate()->firstOrFail();
+
+            if ($fresh->calculation_started_at === null) {
+                $payroll->setRawAttributes($fresh->getAttributes(), true);
+
+                return false;
+            }
+
+            $fresh->status = $hasAdjustments ? PayrollStatus::Adjusted : PayrollStatus::Calculated;
+            $fresh->calculated_at = now();
+            $fresh->calculation_started_at = null;
+            $fresh->save();
+            $payroll->setRawAttributes($fresh->getAttributes(), true);
+
+            return true;
+        });
 
         $this->refreshTotals($payroll);
+
+        if (! $completed) {
+            $this->audit->log(
+                'payroll.calculation_discarded',
+                $payroll,
+                null,
+                ['status' => PayrollStatus::Draft->value],
+                "Payroll for {$payroll->label()} left in draft: a salary changed during the calculation. Calculate it again.",
+            );
+
+            return $payroll;
+        }
 
         $this->audit->log(
             'payroll.calculated',
@@ -155,6 +218,7 @@ class PayrollService
     {
         $payroll = $item->payroll;
         $this->guardUnlocked($payroll);
+        $this->guardAdjustable($payroll);
 
         $amount = Money::round($amount);
 
@@ -169,6 +233,7 @@ class PayrollService
         }
 
         return DB::transaction(function () use ($item, $payroll, $bucket, $amount, $reason, $user): PayrollAdjustment {
+            $this->lockAdjustable($payroll);
             $current = $item->breakdown['buckets'][$bucket->value] ?? ['system' => 0.0, 'adjustment' => 0.0, 'final' => 0.0];
             $final = Money::round($current['final'] + $amount);
 
@@ -221,8 +286,10 @@ class PayrollService
         $item = $adjustment->payrollItem;
         $payroll = $item->payroll;
         $this->guardUnlocked($payroll);
+        $this->guardAdjustable($payroll);
 
         DB::transaction(function () use ($adjustment, $item, $payroll): void {
+            $this->lockAdjustable($payroll);
             $this->audit->log(
                 'payroll.adjustment_removed',
                 $item,
@@ -250,6 +317,18 @@ class PayrollService
 
         try {
             DB::transaction(function () use ($payroll, $user): void {
+                // Same lock order as SalaryRevisionService (employees, then the payroll):
+                // a salary change for one of these employees waits for this to finish,
+                // and one that already moved the payroll back to draft is seen here.
+                // Ids first, then lock by primary key: a locking read with a subquery
+                // would lock the whole employees index (every company's rows).
+                $employeeIds = PayrollItem::query()->where('payroll_id', $payroll->id)->pluck('employee_id')->sort()->values()->all();
+                Employee::query()->whereKey($employeeIds)->orderBy('id')->lockForUpdate()->pluck('id');
+                $fresh = Payroll::query()->whereKey($payroll->id)->lockForUpdate()->firstOrFail();
+
+                $this->guardUnlocked($fresh);
+                $this->guardCalculated($fresh);
+
                 $today = $this->tenant->today();
                 $periodMonth = CarbonImmutable::create($payroll->period_year, $payroll->period_month, 1);
 
@@ -276,6 +355,10 @@ class PayrollService
                 );
             });
         } catch (ValidationException $exception) {
+            if (array_key_exists('payroll', $exception->errors())) {
+                throw $exception;
+            }
+
             // A borrow changed after the payroll was calculated (repaid, cancelled…), so
             // the reviewed figures can no longer be posted. Nothing was saved; the
             // admin is told, on the payroll itself, to recalculate.
@@ -504,6 +587,29 @@ class PayrollService
                 'payroll' => "The payroll for {$payroll->label()} is finalized and locked. Reopen it to make changes.",
             ]);
         }
+    }
+
+    /**
+     * Adjustments go on top of calculated figures: a Draft payroll (never
+     * calculated, being calculated, or moved back by a salary change) has none.
+     */
+    private function guardAdjustable(Payroll $payroll): void
+    {
+        if ($payroll->status === PayrollStatus::Draft) {
+            throw ValidationException::withMessages([
+                'payroll' => 'Calculate the payroll before adjusting it.',
+            ]);
+        }
+    }
+
+    /**
+     * Re-check, under a lock on the payroll row, that it can still be adjusted.
+     */
+    private function lockAdjustable(Payroll $payroll): void
+    {
+        $fresh = Payroll::query()->whereKey($payroll->id)->lockForUpdate()->firstOrFail();
+        $this->guardUnlocked($fresh);
+        $this->guardAdjustable($fresh);
     }
 
     private function guardCalculated(Payroll $payroll): void

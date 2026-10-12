@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import { Trash2 } from '@lucide/vue';
 import { computed } from 'vue';
 import FormField from '@/components/FormField.vue';
+import InputError from '@/components/InputError.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
 import SectionCard from '@/components/SectionCard.vue';
 import { Button } from '@/components/ui/button';
@@ -33,9 +34,11 @@ const props = defineProps<{
     itemId: number;
     adjustments: PayrollAdjustmentEntry[];
     buckets: AdjustableBucket[];
-    /** False when the payroll is finalized or the user may not adjust. */
+    /** False when the payroll is finalized, still a draft, or the user may not adjust. */
     editable: boolean;
     locked: boolean;
+    /** The payroll is a draft: it has to be calculated before it can be adjusted. */
+    needsCalculation?: boolean;
 }>();
 
 const { money, dateTime } = useFormat();
@@ -173,6 +176,12 @@ const remove = (adjustment: PayrollAdjustmentEntry): void =>
                 />
             </FormField>
 
+            <InputError
+                :message="
+                    (form.errors as Record<string, string | undefined>).payroll
+                "
+            />
+
             <div>
                 <Button type="submit" :disabled="form.processing">
                     <Spinner v-if="form.processing" />
@@ -187,6 +196,14 @@ const remove = (adjustment: PayrollAdjustmentEntry): void =>
         >
             This payroll is finalized and locked. Reopen the payroll to adjust
             it; reopening is recorded in the audit log.
+        </p>
+
+        <p
+            v-else-if="needsCalculation"
+            class="mt-4 border-t pt-4 text-sm text-warning"
+        >
+            Calculate the payroll to apply the latest changes before adjusting
+            it.
         </p>
     </SectionCard>
 </template>

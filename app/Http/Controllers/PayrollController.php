@@ -124,6 +124,7 @@ class PayrollController extends Controller
             'status_label' => $payroll->status->label(),
             'is_locked' => $payroll->isLocked(),
             'calculated_at' => $payroll->calculated_at?->toIso8601String(),
+            'is_calculating' => $payroll->isCalculating(),
             'finalized_at' => $payroll->finalized_at?->toIso8601String(),
         ];
     }

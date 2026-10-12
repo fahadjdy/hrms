@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\PayrollStatus;
 use App\Jobs\CalculatePayroll;
 use App\Models\Employee;
 use App\Models\Payroll;
@@ -31,6 +32,12 @@ class PayrollCalculationController extends Controller
         }
 
         $payrolls->calculate($payroll);
+
+        if ($payroll->status === PayrollStatus::Draft) {
+            $this->toast('A salary changed while the payroll was being calculated, so it was left in draft. Calculate it again.', 'warning');
+
+            return back();
+        }
 
         $this->toast("Payroll calculated for {$payroll->employee_count} employee(s).");
 

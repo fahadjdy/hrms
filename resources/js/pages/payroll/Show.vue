@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { Head, Link, router, setLayoutProps, useForm } from '@inertiajs/vue3';
+import {
+    Head,
+    Link,
+    router,
+    setLayoutProps,
+    useForm,
+    usePoll,
+} from '@inertiajs/vue3';
 import {
     Calculator,
     Download,
@@ -11,7 +18,7 @@ import {
     Trash2,
     TriangleAlert,
 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DataPagination from '@/components/DataPagination.vue';
 import DataTable from '@/components/DataTable.vue';
@@ -71,6 +78,8 @@ type Payroll = {
     total_borrow_recovery: number;
     total_net_payable: number;
     calculated_at: string | null;
+    /** A queued calculation is running; the payroll stays a draft until it ends. */
+    is_calculating: boolean;
     finalized_at: string | null;
     finalized_by: string | null;
     reopened_at: string | null;
@@ -133,6 +142,26 @@ const canFinalize = computed(() => can('payroll.finalize'));
 const isDraft = computed(() => props.payroll.status === 'draft');
 const isLocked = computed(() => props.payroll.is_locked);
 const hasItems = computed(() => props.payroll.employee_count > 0);
+const isCalculating = computed(() => props.payroll.is_calculating);
+
+// While a queued calculation runs, refresh the payroll until it finishes.
+const calculationPoll = usePoll(
+    4000,
+    { only: ['payroll', 'items'] },
+    { autoStart: false },
+);
+
+watch(
+    isCalculating,
+    (calculating) => {
+        if (calculating) {
+            calculationPoll.start();
+        } else {
+            calculationPoll.stop();
+        }
+    },
+    { immediate: true },
+);
 
 /** A deduction is money leaving the employee's pay, so it reads as a negative. */
 const minus = (amount: number): string => (amount > 0 ? money(-amount) : '-');
@@ -252,13 +281,21 @@ const itemUrl = (row: PayrollItemRow) =>
                     <Button
                         v-if="canManage && !isLocked"
                         :variant="isDraft ? 'default' : 'outline'"
-                        :disabled="acting !== null"
+                        :disabled="acting !== null || isCalculating"
                         @click="act('calculate', calculate.url(payroll.id))"
                     >
-                        <Spinner v-if="acting === 'calculate'" />
+                        <Spinner
+                            v-if="acting === 'calculate' || isCalculating"
+                        />
                         <Calculator v-else-if="isDraft" />
                         <RefreshCw v-else />
-                        {{ isDraft ? 'Calculate payroll' : 'Recalculate' }}
+                        {{
+                            isCalculating
+                                ? 'Calculating…'
+                                : isDraft
+                                  ? 'Calculate payroll'
+                                  : 'Recalculate'
+                        }}
                     </Button>
                     <Button
                         v-if="canManage && payroll.status === 'calculated'"
@@ -270,7 +307,13 @@ const itemUrl = (row: PayrollItemRow) =>
                         Start admin review
                     </Button>
                     <Button
-                        v-if="canFinalize && !isLocked && !isDraft && hasItems"
+                        v-if="
+                            canFinalize &&
+                            !isLocked &&
+                            !isDraft &&
+                            !isCalculating &&
+                            hasItems
+                        "
                         :disabled="acting !== null"
                         @click="finalizeOpen = true"
                     >
@@ -317,7 +360,7 @@ const itemUrl = (row: PayrollItemRow) =>
                         v-if="canManage && !isLocked"
                         variant="ghost"
                         class="text-negative hover:text-negative"
-                        :disabled="acting !== null"
+                        :disabled="acting !== null || isCalculating"
                         @click="deleteOpen = true"
                     >
                         <Trash2 />
@@ -327,7 +370,29 @@ const itemUrl = (row: PayrollItemRow) =>
             </div>
 
             <p
-                v-if="!isLocked && !isDraft"
+                v-if="isCalculating"
+                role="status"
+                class="mt-4 flex max-w-[80ch] flex-wrap items-center gap-x-2 gap-y-1 text-sm text-info"
+            >
+                The payroll is being calculated. This page refreshes on its own
+                when it finishes.
+                <button
+                    type="button"
+                    class="rounded-sm underline underline-offset-4 outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+                    @click="router.reload({ only: ['payroll', 'items'] })"
+                >
+                    Reload now
+                </button>
+            </p>
+            <p
+                v-else-if="!isLocked && isDraft && hasItems"
+                class="mt-4 max-w-[80ch] text-sm text-warning"
+            >
+                Salary or other data changed since the last calculation —
+                calculate again.
+            </p>
+            <p
+                v-else-if="!isLocked && !isDraft"
                 class="mt-4 max-w-[80ch] text-sm text-muted-foreground"
             >
                 Recalculating picks up changes to attendance, overtime, borrow
@@ -429,12 +494,12 @@ const itemUrl = (row: PayrollItemRow) =>
                 <Button
                     v-if="canManage && !isLocked"
                     class="mt-2"
-                    :disabled="acting !== null"
+                    :disabled="acting !== null || isCalculating"
                     @click="act('calculate', calculate.url(payroll.id))"
                 >
-                    <Spinner v-if="acting === 'calculate'" />
+                    <Spinner v-if="acting === 'calculate' || isCalculating" />
                     <Calculator v-else />
-                    Calculate payroll
+                    {{ isCalculating ? 'Calculating…' : 'Calculate payroll' }}
                 </Button>
             </div>
         </div>

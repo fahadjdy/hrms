@@ -8,6 +8,7 @@ use App\Services\PayrollService;
 use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Throwable;
 
 class CalculatePayroll implements ShouldBeUnique, ShouldQueue
 {
@@ -28,6 +29,20 @@ class CalculatePayroll implements ShouldBeUnique, ShouldQueue
     {
         $this->asCompany($this->companyId, function () use ($payrolls): void {
             $payrolls->calculate(Payroll::query()->findOrFail($this->payrollId));
+        });
+    }
+
+    /**
+     * A timed-out or crashed run never reaches calculate()'s own cleanup.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $this->asCompany($this->companyId, function (): void {
+            $payroll = Payroll::query()->find($this->payrollId);
+
+            if ($payroll !== null) {
+                app(PayrollService::class)->clearCalculationMarker($payroll);
+            }
         });
     }
 }

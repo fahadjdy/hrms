@@ -7,6 +7,7 @@ use App\Enums\BorrowTransactionType;
 use App\Enums\OvertimeStatus;
 use App\Enums\PayrollBucket;
 use App\Enums\PayrollStatus;
+use App\Jobs\CalculatePayroll;
 use App\Jobs\GenerateSalarySlips;
 use App\Models\AuditLog;
 use App\Models\BorrowTransaction;
@@ -16,10 +17,12 @@ use App\Models\Payroll;
 use App\Models\PayrollItem;
 use App\Models\SalarySlip;
 use App\Services\BorrowCalculationService;
+use App\Services\PayrollCalculationService;
 use App\Services\PayrollService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use Tests\Concerns\InteractsWithCompanies;
 use Tests\TestCase;
 
@@ -247,6 +250,56 @@ class PayrollServiceTest extends TestCase
         }
 
         $this->assertSame(PayrollStatus::Draft, Payroll::query()->sole()->status);
+    }
+
+    public function test_a_failed_calculation_does_not_leave_the_payroll_marked_as_calculating(): void
+    {
+        $this->prepareCompany();
+        $this->createEmployee([], 26000);
+        $payroll = $this->service()->create(2026, 9);
+
+        $this->mock(PayrollCalculationService::class)
+            ->shouldReceive('calculate')
+            ->andThrow(new RuntimeException('Calculation crashed'));
+
+        try {
+            $this->service()->calculate($payroll);
+            $this->fail('The calculation should have thrown.');
+        } catch (RuntimeException $e) {
+            $this->assertSame('Calculation crashed', $e->getMessage());
+        }
+
+        $payroll->refresh();
+        $this->assertSame(PayrollStatus::Draft, $payroll->status);
+        $this->assertNull($payroll->calculation_started_at);
+        $this->assertFalse($payroll->isCalculating());
+    }
+
+    public function test_a_failed_queued_calculation_clears_the_marker(): void
+    {
+        $this->prepareCompany();
+        $payroll = $this->service()->create(2026, 9);
+        $payroll->forceFill(['calculation_started_at' => now()])->save();
+
+        (new CalculatePayroll($payroll->company_id, $payroll->id))->failed(new RuntimeException('Timed out'));
+
+        $this->assertNull($payroll->refresh()->calculation_started_at);
+    }
+
+    public function test_a_calculation_marker_older_than_the_job_timeout_is_not_treated_as_running(): void
+    {
+        $this->prepareCompany();
+        $this->createEmployee([], 26000);
+        $payroll = $this->service()->create(2026, 9);
+
+        $payroll->forceFill(['calculation_started_at' => now()->subMinutes(5)])->save();
+        $this->assertTrue($payroll->refresh()->isCalculating());
+
+        $payroll->forceFill(['calculation_started_at' => now()->subMinutes(Payroll::CALCULATION_STALE_AFTER_MINUTES + 1)])->save();
+        $this->assertFalse($payroll->refresh()->isCalculating());
+
+        // A dead run can be replaced by a new calculation.
+        $this->assertSame(PayrollStatus::Calculated, $this->service()->calculate($payroll)->status);
     }
 
     private function prepareCompany(): void

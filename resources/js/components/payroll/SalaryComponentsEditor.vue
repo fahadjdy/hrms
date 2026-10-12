@@ -21,8 +21,15 @@ const props = withDefaults(
         errorPrefix?: string;
         /** Prefix for input ids, so two editors can share a page. */
         idPrefix?: string;
+        /** Shows the rows read-only, e.g. when a finalized payroll used them. */
+        disabled?: boolean;
     }>(),
-    { errors: () => ({}), errorPrefix: 'components', idPrefix: 'component' },
+    {
+        errors: () => ({}),
+        errorPrefix: 'components',
+        idPrefix: 'component',
+        disabled: false,
+    },
 );
 
 const rows = defineModel<SalaryComponentRow[]>({ required: true });
@@ -78,11 +85,13 @@ const errorFor = (index: number, field: string): string | undefined =>
                         :aria-invalid="!!errorFor(index, 'name') || undefined"
                         placeholder="e.g. Basic"
                         maxlength="100"
+                        :disabled="disabled"
                         class="col-span-2 sm:col-span-1"
                     />
                     <NativeSelect
                         :model-value="row.type"
                         :options="typeOptions"
+                        :disabled="disabled"
                         :aria-label="`Component ${index + 1} type`"
                         class="col-span-2 sm:col-span-1"
                         @update:model-value="
@@ -103,6 +112,7 @@ const errorFor = (index: number, field: string): string | undefined =>
                         :aria-label="`Component ${index + 1} monthly amount`"
                         :aria-invalid="!!errorFor(index, 'amount') || undefined"
                         placeholder="0.00"
+                        :disabled="disabled"
                         class="tabular sm:text-right"
                     />
                     <Button
@@ -110,7 +120,7 @@ const errorFor = (index: number, field: string): string | undefined =>
                         variant="ghost"
                         size="icon"
                         :aria-label="`Remove component ${index + 1}${row.name ? `, ${row.name}` : ''}`"
-                        :disabled="rows.length === 1"
+                        :disabled="disabled || rows.length === 1"
                         @click="remove(index)"
                     >
                         <Trash2 />
@@ -128,7 +138,7 @@ const errorFor = (index: number, field: string): string | undefined =>
 
         <InputError :message="errors[errorPrefix]" />
 
-        <div class="flex flex-wrap gap-2">
+        <div v-if="!disabled" class="flex flex-wrap gap-2">
             <Button
                 type="button"
                 variant="outline"

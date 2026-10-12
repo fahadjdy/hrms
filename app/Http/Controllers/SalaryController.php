@@ -11,6 +11,7 @@ use App\Services\SalaryRevisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -60,7 +61,7 @@ class SalaryController extends Controller
     {
         $employee->load(['department:id,name', 'designation:id,name', 'salaryRevisions' => fn ($query) => $query->with(['components', 'creator:id,name'])]);
         $current = $salaries->revisionOn($employee, $this->tenant()->today());
-        $finalizedPayrolls = $salaries->finalizedPayrolls($employee);
+        $lockedReasons = $salaries->lockedReasons($employee);
 
         return Inertia::render('payroll/EmployeeSalary', [
             'employee' => [
@@ -71,8 +72,8 @@ class SalaryController extends Controller
             'revisions' => $salaries->revisions($employee)
                 ->reverse()
                 ->values()
-                ->map(function (EmployeeSalaryRevision $revision) use ($current, $salaries, $finalizedPayrolls): array {
-                    $lockedReason = $salaries->lockedReason($revision->effective_date, $finalizedPayrolls);
+                ->map(function (EmployeeSalaryRevision $revision) use ($current, $lockedReasons): array {
+                    $lockedReason = $lockedReasons[$revision->id] ?? null;
 
                     return [
                         ...$this->present($revision),
@@ -87,22 +88,24 @@ class SalaryController extends Controller
     }
 
     /**
-     * Add a salary revision.
+     * Add a salary revision. Refused inside a paid period; open payrolls for the
+     * days it takes over go back to draft, which the toast says.
      */
     public function store(Request $request, Employee $employee, SalaryRevisionService $salaries): RedirectResponse
     {
         $validated = $this->validateRevision($request, $employee);
 
-        $salaries->revise($employee, $validated, $request->user());
+        $result = $salaries->revise($employee, $validated, $request->user());
 
-        $this->toast('Salary revision saved.');
+        $this->toastWithRecalculation('Salary revision saved.', $result['pending_payrolls']);
 
         return back();
     }
 
     /**
-     * Edit a salary revision. Refused once a finalized payroll used it; payrolls
-     * still open for the affected dates need recalculating, which the toast says.
+     * Edit a salary revision. Changing its pay is refused once a finalized payroll
+     * or settlement used it; open payrolls for the affected days go back to draft
+     * and must be recalculated, which the toast says.
      */
     public function update(Request $request, Employee $employee, EmployeeSalaryRevision $revision, SalaryRevisionService $salaries): RedirectResponse
     {
@@ -111,19 +114,32 @@ class SalaryController extends Controller
         $revision->setRelation('employee', $employee);
         $result = $salaries->update($revision, $validated, $request->user());
 
-        $months = $result['pending_payrolls']->map(fn (Payroll $payroll): string => $payroll->label())->values()->all();
-
-        if ($months === []) {
-            $this->toast('Salary revision updated.');
-        } else {
-            $this->toast(
-                'Salary revision updated. Recalculate the '.(count($months) === 1 ? 'payroll' : 'payrolls')
-                    .' for '.Arr::join($months, ', ', ' and ').' to apply it.',
-                'warning',
-            );
-        }
+        $this->toastWithRecalculation('Salary revision updated.', $result['pending_payrolls']);
 
         return back();
+    }
+
+    /**
+     * Confirm the change and name the payrolls it moved back to draft, if any.
+     *
+     * @param  Collection<int, Payroll>  $payrolls
+     */
+    private function toastWithRecalculation(string $message, Collection $payrolls): void
+    {
+        $months = $payrolls->map(fn (Payroll $payroll): string => $payroll->label())->values()->all();
+
+        if ($months === []) {
+            $this->toast($message);
+
+            return;
+        }
+
+        $this->toast(
+            count($months) === 1
+                ? "{$message} The payroll for {$months[0]} was moved back to draft; recalculate it."
+                : "{$message} The payrolls for ".Arr::join($months, ', ', ' and ').' were moved back to draft; recalculate them.',
+            'warning',
+        );
     }
 
     /**

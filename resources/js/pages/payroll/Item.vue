@@ -204,8 +204,15 @@ const salaryItems = computed(() =>
                     :item-id="item.id"
                     :adjustments="adjustments"
                     :buckets="adjustableBuckets"
-                    :editable="!payroll.is_locked && can('payroll.manage')"
+                    :editable="
+                        !payroll.is_locked &&
+                        payroll.status !== 'draft' &&
+                        can('payroll.manage')
+                    "
                     :locked="payroll.is_locked"
+                    :needs-calculation="
+                        !payroll.is_locked && payroll.status === 'draft'
+                    "
                 />
 
                 <SectionCard
