@@ -81,7 +81,7 @@ class SettingsEndpointsTest extends TestCase
             'overtime_multiplier' => 2,
             'overtime_fixed_rate' => 250,
             'overtime_from_attendance' => true,
-            'short_hours_mode' => 'deduct',
+            'short_hours_mode' => 'manual',
             'short_hours_rate_type' => 'fixed',
             'short_hours_fixed_rate' => 200,
             'borrow_auto_deduct' => false,
@@ -95,14 +95,14 @@ class SettingsEndpointsTest extends TestCase
         $this->assertSame('fixed', $settings->overtime_rate_type);
         $this->assertSame(250.0, $settings->overtime_fixed_rate);
         $this->assertTrue($settings->overtime_from_attendance);
-        $this->assertSame(ShortHoursMode::Deduct, $settings->short_hours_mode);
+        $this->assertSame(ShortHoursMode::Manual, $settings->short_hours_mode);
         $this->assertSame(200.0, $settings->short_hours_fixed_rate);
         $this->assertFalse($settings->borrow_auto_deduct);
         $this->assertSame(40.0, $settings->borrow_max_deduction_percent);
 
         $audit = AuditLog::query()->where('action', 'settings.payroll_updated')->sole();
-        $this->assertSame('record_only', $audit->old_values['short_hours_mode']);
-        $this->assertSame('deduct', $audit->new_values['short_hours_mode']);
+        $this->assertSame('deduct', $audit->old_values['short_hours_mode']);
+        $this->assertSame('manual', $audit->new_values['short_hours_mode']);
     }
 
     public function test_fixed_short_hours_rate_is_required_when_the_rate_type_is_fixed(): void
@@ -116,13 +116,13 @@ class SettingsEndpointsTest extends TestCase
             'overtime_rate_type' => 'multiplier',
             'overtime_multiplier' => 1.5,
             'overtime_from_attendance' => false,
-            'short_hours_mode' => 'deduct',
+            'short_hours_mode' => 'manual',
             'short_hours_rate_type' => 'fixed',
             'borrow_auto_deduct' => true,
         ]);
 
         $response->assertSessionHasErrors(['short_hours_fixed_rate' => 'Enter the fixed short-hours rate per hour.']);
-        $this->assertSame(ShortHoursMode::RecordOnly, $this->tenant()->settings()->short_hours_mode);
+        $this->assertSame(ShortHoursMode::Deduct, $this->tenant()->settings()->short_hours_mode);
     }
 
     public function test_changing_the_weekly_holidays_changes_the_working_days(): void

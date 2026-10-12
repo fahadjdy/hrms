@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\BorrowTransactionType;
 use App\Enums\DesignationChangeType;
 use App\Enums\EmployeeStatus;
 use App\Enums\ExitType;
@@ -17,9 +18,9 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
- * The employee lifecycle: joining, changes and exit. Employees are never
- * deleted; an exit turns an employee into a past employee and keeps all of
- * their history.
+ * The employee lifecycle: joining, changes, exit and deletion. An exit turns
+ * an employee into a past employee and keeps all of their history; deleting
+ * is only for a fresh record, e.g. one created for testing or by mistake.
  */
 class EmployeeService
 {
@@ -27,6 +28,19 @@ class EmployeeService
         'employee_code', 'first_name', 'last_name', 'date_of_birth', 'gender', 'phone', 'email',
         'address', 'city', 'state', 'country', 'postal_code', 'joining_date', 'department_id',
         'designation_id', 'employment_type', 'reporting_manager_id', 'status', 'probation_end_date', 'notes',
+    ];
+
+    /**
+     * Tables holding an employee's own records, removed when the employee is
+     * deleted. Child rows (salary components, borrow installments and
+     * transactions) go with their parent. Payroll items and final settlements
+     * are never among them: either one blocks the deletion.
+     */
+    private const array DEPENDENT_TABLES = [
+        'attendance_logs', 'attendances', 'leave_balances', 'employee_leaves', 'employee_salary_revisions',
+        'employee_borrows', 'overtimes', 'salary_bonuses', 'salary_deductions', 'short_hours_adjustments',
+        'employee_shift_assignments', 'employee_documents',
+        'employee_designation_changes',
     ];
 
     public function __construct(
@@ -244,6 +258,79 @@ class EmployeeService
         $this->audit->log('employee.reinstated', $employee, $old, ['status' => 'active'], "{$employee->full_name} reinstated as an active employee", $employee->id);
 
         return $employee;
+    }
+
+    /**
+     * Why the employee cannot be deleted, or null when they can. Only a fresh
+     * record (e.g. created for testing) may be deleted: a past employee, anyone
+     * included in a payroll (even a draft) and anyone who was given or repaid
+     * borrow money is a real employee, who leaves through exit() instead.
+     */
+    public function deletionBlocker(Employee $employee): ?string
+    {
+        if ($employee->isPast()) {
+            return 'Past employees cannot be deleted; their history is kept.';
+        }
+
+        if ($employee->payrollItems()->exists() || $employee->finalSettlement()->exists()) {
+            return 'This employee is already part of a payroll, so they cannot be deleted. Use "Leave company" instead.';
+        }
+
+        $hasBorrowMovements = DB::table('borrow_transactions')
+            ->where('company_id', $employee->company_id)
+            ->where('employee_id', $employee->id)
+            ->where('type', '!=', BorrowTransactionType::Opening->value)
+            ->exists();
+
+        if ($hasBorrowMovements) {
+            return 'Borrow money has been given to or recovered from this employee, so they cannot be deleted. Use "Leave company" instead.';
+        }
+
+        return null;
+    }
+
+    /**
+     * Permanently delete a fresh employee record with all of its data. The
+     * audit trail is kept (unlinked from the employee).
+     */
+    public function delete(Employee $employee): void
+    {
+        DB::transaction(function () use ($employee): void {
+            // Lock the employee row so the checks below hold until the records are gone.
+            Employee::query()->whereKey($employee->id)->lockForUpdate()->first();
+
+            if (($blocker = $this->deletionBlocker($employee)) !== null) {
+                throw ValidationException::withMessages(['employee' => $blocker]);
+            }
+
+            $files = [
+                'local' => $employee->documents()->pluck('file_path')->all(),
+                'public' => array_filter([$employee->photo_path]),
+            ];
+
+            $this->audit->log(
+                'employee.deleted',
+                $employee,
+                $employee->only(['employee_code', 'first_name', 'last_name', 'joining_date', 'status']),
+                null,
+                "Employee {$employee->full_name} ({$employee->employee_code}) deleted",
+            );
+
+            foreach (self::DEPENDENT_TABLES as $table) {
+                DB::table($table)
+                    ->where('company_id', $employee->company_id)
+                    ->where('employee_id', $employee->id)
+                    ->delete();
+            }
+
+            $employee->delete();
+
+            DB::afterCommit(function () use ($files): void {
+                foreach ($files as $disk => $paths) {
+                    Storage::disk($disk)->delete($paths);
+                }
+            });
+        });
     }
 
     /**

@@ -55,7 +55,7 @@ Company Admin **Settings → Payroll → Short-hours rule** me teen me se ek niy
 
 **Teeno niyam me ek baat same hai:** agar aap kisi employee ke liye khud rakam bhar dete hain (Adjust), to **wahi rakam katti hai** — niyam chahe jo ho.
 
-> Nayi company me shuru me **Record only** niyam hota hai.
+> Nayi company me shuru me **Deduct from salary** niyam hota hai: system rakam khud nikaal kar laata hai, aur admin har employee ki aakhri rakam Short Hours screen par badal sakta hai. Purani companies ka niyam waisa hi rehta hai jaisa chuna gaya tha.
 
 ## Rakam ka hisaab kaise banta hai
 

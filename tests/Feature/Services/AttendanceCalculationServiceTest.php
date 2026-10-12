@@ -64,6 +64,25 @@ class AttendanceCalculationServiceTest extends TestCase
         $this->assertSame(0, $attendance->short_minutes);
     }
 
+    public function test_hours_entered_without_times_below_the_requirement_make_a_short_hours_day(): void
+    {
+        $this->travelTo('2026-10-01 10:00:00');
+        $this->useCompany($this->createCompany());
+        $employee = $this->createEmployee();
+
+        app(AttendanceCalculationService::class)->record($employee, CarbonImmutable::parse('2026-09-10'), [
+            'status' => 'present',
+            'worked_minutes' => 360,
+            'notes' => 'Left early for a doctor visit',
+        ]);
+
+        $attendance = Attendance::query()->sole();
+        $this->assertSame(AttendanceStatus::ShortHours, $attendance->status);
+        $this->assertSame(360, $attendance->worked_minutes);
+        $this->assertSame(120, $attendance->short_minutes);
+        $this->assertSame('Left early for a doctor visit', $attendance->notes);
+    }
+
     public function test_late_check_in_marks_the_day_as_late(): void
     {
         $this->travelTo('2026-10-01 10:00:00');

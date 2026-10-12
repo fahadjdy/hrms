@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import DatePicker from '@/components/DatePicker.vue';
 import FormField from '@/components/FormField.vue';
 import NativeSelect from '@/components/NativeSelect.vue';
@@ -30,14 +30,24 @@ const props = defineProps<{
 
 const open = defineModel<boolean>('open', { default: false });
 
-const { date: formatDate } = useFormat();
+const { date: formatDate, minutes } = useFormat();
 
 const form = useForm({
     status: 'present' as string | null,
     check_in: '',
     check_out: '',
+    worked_hours: '',
     notes: '',
+    reason: '',
 });
+
+/** Absence and full-day leave have no working hours to enter. */
+const takesHours = computed(
+    () =>
+        !['absent', 'paid_leave', 'unpaid_leave'].includes(form.status ?? '') &&
+        !form.check_in &&
+        !form.check_out,
+);
 
 const clearing = ref(false);
 
@@ -51,19 +61,40 @@ watch(open, (isOpen) => {
     form.status = props.day?.status ?? 'present';
     form.check_in = props.day?.check_in ?? '';
     form.check_out = props.day?.check_out ?? '';
+    form.worked_hours = enteredHours(props.day);
     form.notes = props.day?.notes ?? '';
+    form.reason = '';
 });
+
+/**
+ * Hours typed as a decimal (6.5 = 6 h 30 min), sent as minutes. Only used
+ * when no check-in / check-out is entered.
+ */
+function enteredHours(day: AttendanceDay | null): string {
+    if (!day || day.state !== 'recorded' || day.check_in) {
+        return '';
+    }
+
+    return day.worked_minutes !== day.required_minutes
+        ? String(Math.round((day.worked_minutes / 60) * 100) / 100)
+        : '';
+}
 
 function save(): void {
     if (!props.employee) {
         return;
     }
 
-    form.transform((data) => ({
+    form.transform(({ worked_hours, ...data }) => ({
         ...data,
         check_in: data.check_in || null,
         check_out: data.check_out || null,
+        worked_minutes:
+            takesHours.value && worked_hours !== ''
+                ? Math.round(Number(worked_hours) * 60)
+                : null,
         notes: data.notes || null,
+        reason: data.reason || null,
     })).put(update.url({ employee: props.employee.id, date: props.date }), {
         preserveScroll: true,
         onSuccess: () => {
@@ -152,13 +183,45 @@ function clearRecord(): void {
                 </p>
 
                 <FormField
-                    label="Notes"
+                    v-if="takesHours"
+                    label="Hours worked"
+                    for="mark-worked-hours"
+                    :error="(form.errors as Record<string, string>).worked_minutes"
+                    :hint="`Optional, e.g. 6.5 for 6 h 30 min. Empty counts the full required ${day?.required_minutes ? minutes(day.required_minutes) : 'hours'}. Fewer hours become Short Hours and are deducted per the company's short-hours rule.`"
+                >
+                    <Input
+                        id="mark-worked-hours"
+                        v-model="form.worked_hours"
+                        type="number"
+                        inputmode="decimal"
+                        min="0"
+                        max="24"
+                        step="0.25"
+                    />
+                </FormField>
+
+                <FormField
+                    label="Reason / notes"
                     for="mark-notes"
                     :error="form.errors.notes"
+                    hint="Optional, e.g. why fewer hours were worked. Shown on the day."
                 >
                     <Input
                         id="mark-notes"
                         v-model="form.notes"
+                        maxlength="255"
+                    />
+                </FormField>
+
+                <FormField
+                    label="Reason for the change"
+                    for="mark-reason"
+                    :error="form.errors.reason"
+                    hint="Optional. Kept in the change history and the audit log."
+                >
+                    <Input
+                        id="mark-reason"
+                        v-model="form.reason"
                         maxlength="255"
                     />
                 </FormField>

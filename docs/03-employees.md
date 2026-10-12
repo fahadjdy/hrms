@@ -59,6 +59,7 @@ List me naam par click karne se profile khulti hai. Sabse upar photo, naam, stat
 - **New borrow**: is employee ko naya borrow / advance dena
 - **Edit**: jaankari badalna
 - **Leave company**: employee ko exit karna
+- **Delete**: sirf testing ke liye ya galti se bana naya record hamesha ke liye hatana
 
 Neeche ye hisse hain:
 
@@ -261,7 +262,7 @@ Salary badhani ho to wo alag se **Salary** page par revision se hoti hai; design
 
 ## Dhyan rakhne wali baatein
 
-- **Employee kabhi delete nahi hota.** Delete ka koi button nahi hai. Koi chhod kar jaye to profile par **Leave company** use karein. Wo **Past Employees** me chala jata hai aur uski poori history bani rehti hai.
+- **Delete sirf testing wale / galti se bane naye employee ke liye hai.** Delete karne par employee aur uski attendance, leave, salary, borrow, documents sab hamesha ke liye hat jate hain (audit log me entry rehti hai). Ye delete **nahi** hota agar employee past employee hai, kisi bhi payroll me aa chuka hai (draft bhi), ya use borrow ka paisa diya / usse wapas liya gaya hai. Asli employee chhod kar jaye to profile par **Leave company** use karein. Wo **Past Employees** me chala jata hai aur uski poori history bani rehti hai.
 - **Employee ID company me unique hona chahiye.** Same ID dobara dene par form save nahi hoga.
 - **Joining date soch samajh kar bharein.** Attendance aur salary isi tareekh se gini jati hai.
 - **Salary edit form se nahi badalti.** Har salary badlav ek nayi entry banta hai aur purani entry history me rehti hai.
@@ -281,7 +282,7 @@ Salary badhani ho to wo alag se **Salary** page par revision se hoti hai; design
 ## Aksar pooche jane wale sawal
 
 **Galti se employee add ho gaya, use kaise hataun?**
-Delete nahi hota. Agar jaankari galat hai to **Edit** se sahi kar dein. Agar wo vyakti company me hai hi nahi to **Leave company** se use past employee bana dein.
+Agar wo testing ke liye ya galti se bana tha aur abhi tak kisi payroll me nahi aaya, to profile par **Delete** dabakar confirm karein. Agar wo payroll me aa chuka hai to delete nahi hoga: jaankari galat hai to **Edit** se sahi karein, ya **Leave company** se use past employee bana dein.
 
 **Galat designation darj ho gayi, kaise theek karun?**
 Profile par **Change designation** dabakar sahi designation chunein, **Type of change** me **Role change** rakhein aur **Reason** me likh dein ki pichhli entry galti se hui thi. Dono entries history me rahengi, par profile aur list me sahi wali dikhegi.

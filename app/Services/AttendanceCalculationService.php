@@ -483,12 +483,19 @@ class AttendanceCalculationService
         if (! $hasTimes) {
             $worked = isset($input['worked_minutes']) ? max(0, (int) $input['worked_minutes']) : $required;
             $short = max(0, $required - $worked);
+            $short = $short <= $settings->short_hours_tolerance_minutes ? 0 : $short;
+
+            // Hours entered without times decide between present and short hours the same way times do.
+            if (in_array($status, [AttendanceStatus::Present, AttendanceStatus::ShortHours], true)) {
+                $status = $short > 0 ? AttendanceStatus::ShortHours : AttendanceStatus::Present;
+            }
 
             return [
                 ...$values,
+                'status' => $status,
                 'required_minutes' => $required,
                 'worked_minutes' => $worked,
-                'short_minutes' => $short <= $settings->short_hours_tolerance_minutes ? 0 : $short,
+                'short_minutes' => $short,
                 'overtime_minutes' => max(0, $worked - $required),
             ];
         }

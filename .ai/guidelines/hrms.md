@@ -21,7 +21,11 @@ Activate the `hrms-architecture` skill before changing tenancy, attendance, sala
 - History is append-only: borrow transactions, attendance logs and audit logs are never edited or deleted. A salary change is a new `EmployeeSalaryRevision`; the one exception is `SalaryRevisionService::update()` (admins correcting a revision), which is audited. Neither adding nor editing a revision may change days a finalized payroll or a finalized/paid final settlement already paid (reason/notes stay editable), and both move overlapping open payrolls back to draft. Revisions are never deleted.
 - A finalized payroll is locked; changes go through `PayrollService::reopen()` with a reason.
 - Call `App\Services\AuditLogger` for every change the spec lists as auditable.
-- Employees are never deleted. Leaving the company is `EmployeeService::exit()`.
+- Leaving the company is `EmployeeService::exit()`. `EmployeeService::delete()` permanently removes only a fresh record (testing / mistake) while `deletionBlocker()` is null: not a past employee, in no payroll (not even a draft), no borrow money given or repaid.
+
+## MCP
+
+- Every feature must also be usable over MCP. A new or changed tenant route needs a matching tool definition in `app/Mcp/Definitions/*.php` (name, route, description, read_only / destructive, params, fields from the controller's validation) and, for a write, a case in `tests/Feature/Mcp/McpToolCallTest.php`. `McpCoverageTest` fails when a callable route has no definition.
 
 ## Frontend
 

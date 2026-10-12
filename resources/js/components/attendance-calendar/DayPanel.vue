@@ -46,6 +46,7 @@ const form = useForm({
     status: 'present',
     check_in: '',
     check_out: '',
+    worked_hours: '',
     notes: '',
     reason: '',
 });
@@ -64,6 +65,12 @@ watch(
         form.status = day.status ?? 'present';
         form.check_in = day.check_in ?? '';
         form.check_out = day.check_out ?? '';
+        form.worked_hours =
+            day.state === 'recorded' &&
+            !day.check_in &&
+            day.worked_minutes !== day.required_minutes
+                ? String(Math.round((day.worked_minutes / 60) * 100) / 100)
+                : '';
         form.notes = day.notes ?? '';
         form.reason = '';
     },
@@ -80,6 +87,14 @@ const editable = computed(
 /** Absence and leave have no working hours to enter. */
 const takesTimes = computed(
     () => !['absent', 'paid_leave', 'unpaid_leave'].includes(form.status),
+);
+
+/**
+ * Hours typed as a decimal (6.5 = 6 h 30 min), sent as minutes. Only used
+ * when no check-in / check-out is entered.
+ */
+const takesHours = computed(
+    () => takesTimes.value && !form.check_in && !form.check_out,
 );
 
 const stateNote = computed(() => {
@@ -110,10 +125,14 @@ function save(): void {
         return;
     }
 
-    form.transform((data) => ({
+    form.transform(({ worked_hours, ...data }) => ({
         ...data,
         check_in: takesTimes.value && data.check_in ? data.check_in : null,
         check_out: takesTimes.value && data.check_out ? data.check_out : null,
+        worked_minutes:
+            takesHours.value && worked_hours !== ''
+                ? Math.round(Number(worked_hours) * 60)
+                : null,
     })).put(update.url({ employee: props.employeeId, date: props.day.date }), {
         preserveScroll: true,
         onSuccess: () => {
@@ -308,9 +327,28 @@ function clear(): void {
                         </div>
 
                         <FormField
-                            label="Notes"
+                            v-if="takesHours"
+                            label="Hours worked"
+                            for="day-worked-hours"
+                            :error="(form.errors as Record<string, string>).worked_minutes"
+                            :hint="`Optional, e.g. 6.5 for 6 h 30 min, instead of times. Empty counts the full required ${day.required_minutes ? minutes(day.required_minutes) : 'hours'}. Fewer hours become Short Hours.`"
+                        >
+                            <Input
+                                id="day-worked-hours"
+                                v-model="form.worked_hours"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                max="24"
+                                step="0.25"
+                            />
+                        </FormField>
+
+                        <FormField
+                            label="Reason / notes"
                             for="day-notes"
                             :error="form.errors.notes"
+                            hint="Optional, e.g. why fewer hours were worked. Shown on the day."
                         >
                             <Input
                                 id="day-notes"
@@ -323,7 +361,7 @@ function clear(): void {
                             label="Reason for the change"
                             for="day-reason"
                             :error="form.errors.reason"
-                            hint="Kept in the change history and the audit log."
+                            hint="Optional. Kept in the change history and the audit log."
                         >
                             <Input
                                 id="day-reason"

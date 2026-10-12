@@ -139,10 +139,9 @@ class PayrollCalculationServiceTest extends TestCase
         $this->assertSame(9000.0, $result['totals']['net_payable']);
     }
 
-    public function test_short_hours_are_deducted_when_the_company_rule_is_deduct(): void
+    public function test_short_hours_are_deducted_by_default(): void
     {
         $employee = $this->employeeWithSalary(26000);
-        $this->configure(['short_hours_mode' => 'deduct']);
         // 7 of 8 required hours worked: 1 short hour at 125 per hour.
         $this->markAttendance($employee, '2026-09-03', 'present', '09:00', '17:00');
 
@@ -156,6 +155,7 @@ class PayrollCalculationServiceTest extends TestCase
     public function test_short_hours_are_shown_but_not_deducted_when_the_company_rule_is_record_only(): void
     {
         $employee = $this->employeeWithSalary(26000);
+        $this->configure(['short_hours_mode' => 'record_only']);
         $this->markAttendance($employee, '2026-09-03', 'present', '09:00', '17:00');
 
         $result = $this->calculate($employee);

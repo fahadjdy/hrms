@@ -89,6 +89,7 @@ class EmployeeController extends Controller
         AttendanceCalculationService $attendance,
         LeaveService $leaves,
         DesignationChangeService $designationChanges,
+        EmployeeService $employees,
     ): Response {
         $employee->load(['department', 'designation', 'reportingManager', 'finalSettlement']);
         $today = $this->tenant()->today();
@@ -179,6 +180,7 @@ class EmployeeController extends Controller
             'designations' => Designation::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'designationChangeTypes' => DesignationChangeType::recordableOptions(),
             'exitTypes' => ExitType::options(),
+            'deletionBlocker' => $employees->deletionBlocker($employee),
             'today' => $today->toDateString(),
         ]);
     }
@@ -216,6 +218,18 @@ class EmployeeController extends Controller
         $this->toast('Employee updated.');
 
         return to_route('employees.show', $employee);
+    }
+
+    /**
+     * Permanently delete a fresh employee record, e.g. one created for testing.
+     */
+    public function destroy(Employee $employee, EmployeeService $employees): RedirectResponse
+    {
+        $employees->delete($employee);
+
+        $this->toast("{$employee->full_name} deleted.");
+
+        return to_route('employees.index');
     }
 
     /**

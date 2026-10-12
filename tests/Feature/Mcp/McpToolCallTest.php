@@ -51,6 +51,17 @@ class McpToolCallTest extends TestCase
         $this->assertDatabaseHas('departments', ['company_id' => $this->company->id, 'name' => 'Finance', 'description' => 'Accounts']);
     }
 
+    public function test_delete_employee_removes_the_employee(): void
+    {
+        $employee = $this->createEmployee(['first_name' => 'Asha']);
+
+        $response = $this->callTool($this->adminOf($this->company), 'delete_employee', ['employee' => $employee->id]);
+
+        $response->assertOk();
+        $this->assertTrue($this->toolResult($response)['ok']);
+        $this->assertDatabaseMissing('employees', ['id' => $employee->id]);
+    }
+
     public function test_validation_errors_come_back_as_a_tool_error_naming_the_field(): void
     {
         Department::factory()->create(['name' => 'Finance']);

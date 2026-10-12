@@ -9,6 +9,7 @@ use App\Models\EmployeeBorrow;
 use App\Models\EmployeeSalaryRevision;
 use App\Models\WorkShift;
 use App\Services\BorrowCalculationService;
+use App\Services\PayrollService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -37,6 +38,7 @@ class EmployeeEndpointsTest extends TestCase
             'store' => ['post', '/employees'],
             'edit form' => ['get', '/employees/{id}/edit'],
             'update' => ['put', '/employees/{id}'],
+            'delete' => ['delete', '/employees/{id}'],
             'exit' => ['post', '/employees/{id}/exit'],
             'reinstate' => ['delete', '/employees/{id}/exit'],
             'shift' => ['put', '/employees/{id}/shift'],
@@ -347,5 +349,65 @@ class EmployeeEndpointsTest extends TestCase
             'status' => 'active',
             ...$overrides,
         ];
+    }
+
+    public function test_deleting_a_fresh_employee_removes_their_records(): void
+    {
+        $this->travelTo('2026-10-01 10:00:00');
+        $company = $this->useCompany($this->createCompany());
+        $kept = $this->createEmployee(['first_name' => 'Asha'], 26000);
+        $employee = $this->createEmployee(['first_name' => 'Test', 'employee_code' => 'EMP-0099'], 26000);
+        $this->markAttendance($employee, '2026-09-10', 'absent');
+
+        $response = $this->actingAs($this->adminOf($company))->delete("/employees/{$employee->id}");
+
+        $response->assertRedirect(route('employees.index'));
+        $this->assertDatabaseMissing('employees', ['id' => $employee->id]);
+        $this->assertDatabaseMissing('attendances', ['employee_id' => $employee->id]);
+        $this->assertDatabaseMissing('employee_salary_revisions', ['employee_id' => $employee->id]);
+        $this->assertDatabaseHas('employees', ['id' => $kept->id]);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'employee.deleted', 'employee_id' => null]);
+    }
+
+    public function test_an_employee_in_any_payroll_cannot_be_deleted(): void
+    {
+        $this->travelTo('2026-10-01 10:00:00');
+        $company = $this->useCompany($this->createCompany());
+        $employee = $this->createEmployee([], 26000);
+        $payrolls = app(PayrollService::class);
+        $payrolls->calculate($payrolls->create(2026, 9));
+        $this->actingAs($this->adminOf($company));
+
+        $this->get("/employees/{$employee->id}")->assertInertia(fn (Assert $page) => $page->whereType('deletionBlocker', 'string'));
+
+        $this->delete("/employees/{$employee->id}")->assertSessionHasErrors('employee');
+        $this->assertDatabaseHas('employees', ['id' => $employee->id]);
+    }
+
+    public function test_a_past_employee_cannot_be_deleted(): void
+    {
+        $this->travelTo('2026-10-01 10:00:00');
+        $company = $this->useCompany($this->createCompany());
+        $employee = $this->createEmployee(['status' => EmployeeStatus::Past, 'last_working_date' => '2026-09-30', 'exit_date' => '2026-09-30']);
+
+        $response = $this->actingAs($this->adminOf($company))->delete("/employees/{$employee->id}");
+
+        $response->assertSessionHasErrors('employee');
+        $this->assertDatabaseHas('employees', ['id' => $employee->id]);
+    }
+
+    public function test_an_employee_who_was_given_borrow_money_cannot_be_deleted(): void
+    {
+        $this->travelTo('2026-10-01 10:00:00');
+        $company = $this->useCompany($this->createCompany());
+        $employee = $this->createEmployee();
+        app(BorrowCalculationService::class)->create($employee, [
+            'amount' => 5000, 'borrow_date' => '2026-09-15', 'monthly_deduction' => 1000, 'deduction_start_month' => '2026-10-01',
+        ]);
+
+        $response = $this->actingAs($this->adminOf($company))->delete("/employees/{$employee->id}");
+
+        $response->assertSessionHasErrors('employee');
+        $this->assertDatabaseHas('employees', ['id' => $employee->id]);
     }
 }

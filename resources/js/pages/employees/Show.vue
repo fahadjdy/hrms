@@ -10,9 +10,11 @@ import {
     Pencil,
     ReceiptText,
     RotateCcw,
+    Trash2,
     Wallet,
 } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import ConfirmDialog from '@/components/ConfirmDialog.vue';
 import DatePicker from '@/components/DatePicker.vue';
 import DetailList from '@/components/DetailList.vue';
@@ -41,7 +43,7 @@ import { usePermissions } from '@/composables/usePermissions';
 import { useConfirmedAction } from '@/composables/useResourceForm';
 import { statusTone } from '@/lib/status';
 import { create as borrowCreate, show as borrowShow } from '@/routes/borrows';
-import { edit, index, past, show } from '@/routes/employees';
+import { destroy, edit, index, past, show } from '@/routes/employees';
 import { show as attendanceShow } from '@/routes/employees/attendance';
 import { store as designationChangeStore } from '@/routes/employees/designation-changes';
 import {
@@ -159,6 +161,7 @@ const props = defineProps<{
     designations: { id: number; name: string }[];
     designationChangeTypes: Option[];
     exitTypes: Option[];
+    deletionBlocker: string | null;
     today: string;
 }>();
 
@@ -278,6 +281,19 @@ function submitExit(): void {
 
 /* Reinstate */
 const reinstate = useConfirmedAction<Employee>();
+
+/* Delete: only for a fresh record, e.g. one created for testing. */
+const deletion = useConfirmedAction<Employee>();
+
+function askDelete(): void {
+    if (props.deletionBlocker) {
+        toast.error(props.deletionBlocker);
+
+        return;
+    }
+
+    deletion.ask(props.employee);
+}
 
 /* Work timing */
 const shiftOpen = ref(false);
@@ -445,6 +461,15 @@ function submitDesignation(): void {
                 >
                     <LogOut />
                     Leave company
+                </Button>
+                <Button
+                    v-if="canManage && !employee.is_past"
+                    variant="outline"
+                    class="text-negative"
+                    @click="askDelete"
+                >
+                    <Trash2 />
+                    Delete
                 </Button>
             </div>
         </header>
@@ -1204,5 +1229,16 @@ function submitDesignation(): void {
         :processing="reinstate.processing.value"
         @update:open="(value) => !value && (reinstate.target.value = null)"
         @confirm="reinstate.run('delete', exitDestroy.url(employee.id))"
+    />
+
+    <ConfirmDialog
+        :open="deletion.target.value !== null"
+        title="Delete this employee permanently?"
+        :description="`${employee.name} and all of their attendance, leaves, salary, borrow, documents and history are removed. This cannot be undone. Only for a record created for testing or by mistake; a real employee uses Leave company.`"
+        confirm-label="Delete employee"
+        destructive
+        :processing="deletion.processing.value"
+        @update:open="(value) => !value && (deletion.target.value = null)"
+        @confirm="deletion.run('delete', destroy.url(employee.id))"
     />
 </template>

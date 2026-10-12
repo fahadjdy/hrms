@@ -139,13 +139,16 @@ Iske alawa do aur shabd dikh sakte hain:
     | **Status**    | Present, Absent, Half Day, Work From Home… jo sahi ho |
     | **Check in**  | Aane ka time (chahein to)                             |
     | **Check out** | Jaane ka time (chahein to)                            |
-    | **Notes**     | Koi chhota note                                       |
+    | **Hours worked** | Time ki jagah sirf kitne ghante kaam kiya, jaise `6.5` = 6 ghante 30 minute (chahein to) |
+    | **Reason / notes** | Kaaran, jaise "doctor ke paas jaana tha" (chahein to). Us din par dikhta hai |
+    | **Reason for the change** | Badlav ka kaaran (chahein to). History me rehta hai |
 
 4. **Save attendance** dabayein.
 
 **Time bharna ya nahi?**
 
 - **Time khali chhodein** → poora din gina jata hai (poore zaroori ghante).
+- **Time ki jagah Hours worked bharein** → zaroori ghanto se kam ho to din **Short Hours** ban jata hai aur kam ghanto ki rakam company ke short-hours niyam se salary se kat-ti hai. Admin aakhri rakam **Short Hours** screen par badal sakta hai.
 - **Dono time bharein** → system employee ki shift se khud hisaab lagata hai: kitna kaam hua, kitna kam raha, kitna overtime, kitni der se aaya.
 - **Sirf ek time mat bharein** — ya to dono bharein ya dono khali chhodein.
 
@@ -228,7 +231,8 @@ Calendar ya list me kisi bhi din par click karein. Daayi taraf se ek panel khult
     | ------------------------- | ---------------------------------------------------------------------------------------- |
     | **Status**                | Sahi status                                                                              |
     | **Check in / Check out**  | Time, agar bharna ho. Absent aur leave ke liye ye box nahi aate                          |
-    | **Notes**                 | Note                                                                                     |
+    | **Hours worked**          | Time ki jagah kitne ghante kaam kiya, jaise `6.5` (chahein to)                           |
+    | **Reason / notes**        | Kaaran ya note, jaise kam ghante kyun (chahein to)                                       |
     | **Reason for the change** | Badlav ka kaaran, jaise "Register me galti thi". Ye history me hamesha ke liye rehta hai |
 
 3. **Save attendance** dabayein.

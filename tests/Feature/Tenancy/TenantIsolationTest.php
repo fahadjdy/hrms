@@ -56,6 +56,7 @@ class TenantIsolationTest extends TestCase
             'profile' => ['get', '/employees/{id}'],
             'edit form' => ['get', '/employees/{id}/edit'],
             'update' => ['put', '/employees/{id}'],
+            'delete' => ['delete', '/employees/{id}'],
             'exit' => ['post', '/employees/{id}/exit'],
             'shift' => ['put', '/employees/{id}/shift'],
             'designation change' => ['post', '/employees/{id}/designation-changes'],
