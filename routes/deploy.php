@@ -22,3 +22,5 @@ Route::get('seed', [DeployController::class, 'seed'])->name('seed');
 Route::get('storage-link', [DeployController::class, 'storageLink'])->name('storage-link');
 Route::get('cache', [DeployController::class, 'cache'])->name('cache');
 Route::get('clear', [DeployController::class, 'clear'])->name('clear');
+Route::get('passport-keys', [DeployController::class, 'passportKeys'])->name('passport-keys');
+Route::get('mcp-log', [DeployController::class, 'mcpLog'])->name('mcp-log');

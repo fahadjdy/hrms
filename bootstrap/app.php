@@ -5,6 +5,7 @@ use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureTenant;
 use App\Http\Middleware\HandleAppearance;
 use App\Http\Middleware\HandleInertiaRequests;
+use App\Http\Middleware\LogMcpTraffic;
 use App\Support\RuntimeDirectories;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -40,6 +41,9 @@ return Application::configure(basePath: dirname(__DIR__))
             HandleInertiaRequests::class,
             AddLinkHeadersForPreloadedAssets::class,
         ]);
+
+        // One log line per request on the MCP / OAuth surface (storage/logs/mcp-access.log).
+        $middleware->append(LogMcpTraffic::class);
 
         $middleware->alias([
             'tenant' => EnsureTenant::class,

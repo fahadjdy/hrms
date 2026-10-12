@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // Bearer tokens for the MCP server (POST /mcp): Passport personal access
+        // tokens (Settings -> AI access) and OAuth tokens issued to connectors.
+        'api' => [
+            'driver' => 'passport',
+            'provider' => 'users',
+        ],
     ],
 
     /*

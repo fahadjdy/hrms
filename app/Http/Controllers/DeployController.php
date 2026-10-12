@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Middleware\LogMcpTraffic;
 use App\Models\User;
 use App\Support\RuntimeDirectories;
 use Closure;
+use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
+use Laravel\Passport\Passport;
+use phpseclib4\Crypt\RSA;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -35,13 +40,15 @@ class DeployController extends Controller
             'Deploy tasks',
             '============',
             '',
-            "{$base}/run            Everything needed after an upload: folders, storage link, migrations, cache refresh",
-            "{$base}/setup          Create missing storage and cache folders, and the storage link",
+            "{$base}/run            Everything needed after an upload: folders, storage link, OAuth keys, migrations, cache refresh",
+            "{$base}/setup          Create missing storage and cache folders, the storage link and the OAuth keys",
             "{$base}/migrate        Run pending database migrations",
             "{$base}/seed           Seed the database (only while it has no users)",
             "{$base}/storage-link   Link public/storage to storage/app/public",
             "{$base}/cache          Cache config, routes and views for speed",
             "{$base}/clear          Clear the config, route, view and application caches",
+            "{$base}/passport-keys  Create the OAuth key pair used by AI connectors (MCP) when it is missing",
+            "{$base}/mcp-log        Show the last 80 requests to the MCP and OAuth URLs",
             '',
             'Each task is safe to run more than once. Set DEPLOY_ROUTES_ENABLED=false in .env to switch these URLs off.',
         ]));
@@ -52,6 +59,7 @@ class DeployController extends Controller
         return $this->run('Setup', [
             'Runtime folders' => fn (): string => $this->ensureDirectories(),
             'Storage link' => fn (): string => $this->artisan('storage:link', ['--force' => true]),
+            'OAuth keys' => fn (): string => $this->ensurePassportKeys(),
         ]);
     }
 
@@ -113,8 +121,43 @@ class DeployController extends Controller
             'Runtime folders' => fn (): string => $this->ensureDirectories(),
             'Clear caches' => fn (): string => $this->artisan('optimize:clear'),
             'Storage link' => fn (): string => $this->artisan('storage:link', ['--force' => true]),
+            'OAuth keys' => fn (): string => $this->ensurePassportKeys(),
             'Migrations' => fn (): string => $this->artisan('migrate', ['--force' => true]),
         ]);
+    }
+
+    /**
+     * Create the Passport key pair that signs MCP / OAuth access tokens.
+     */
+    public function passportKeys(): Response
+    {
+        return $this->run('OAuth keys', [
+            'Runtime folders' => fn (): string => $this->ensureDirectories(),
+            'OAuth keys' => fn (): string => $this->ensurePassportKeys(),
+        ]);
+    }
+
+    /**
+     * Tail of storage/logs/mcp-access.log (written by LogMcpTraffic): every
+     * request that reached PHP on /mcp, /oauth/* and /.well-known/*. Shows
+     * what an AI connector actually sent. `?clear=1` empties the log.
+     */
+    public function mcpLog(Request $request): Response
+    {
+        $file = storage_path(LogMcpTraffic::LOG_FILE);
+        $heading = "MCP log\n=======\n\n";
+
+        if (! is_file($file)) {
+            return $this->text($heading.'No MCP traffic logged yet.');
+        }
+
+        $lines = array_values(array_filter(
+            preg_split('/\R/', trim((string) file_get_contents($file))) ?: [],
+            fn (string $line): bool => $line !== '',
+        ));
+        $tail = array_slice($lines, -80);
+
+        return $this->text($heading.count($lines).' request(s) logged; showing the last '.count($tail).":\n\n".implode("\n", $tail));
     }
 
     /**
@@ -173,6 +216,40 @@ class DeployController extends Controller
         return $created === []
             ? 'All runtime folders already exist.'
             : "Created:\n  ".implode("\n  ", $created);
+    }
+
+    /**
+     * Passport registers `passport:keys` only in the console, so Artisan::call()
+     * cannot reach it from a URL. Generate the pair the same way the command
+     * does (phpseclib, RSA-4096). Existing keys are never replaced, because
+     * that would sign out every connected AI client.
+     */
+    private function ensurePassportKeys(): string
+    {
+        if (filled(config('passport.private_key')) && filled(config('passport.public_key'))) {
+            return 'The OAuth keys come from the environment (PASSPORT_PRIVATE_KEY / PASSPORT_PUBLIC_KEY); nothing to create.';
+        }
+
+        $publicKey = Passport::keyPath('oauth-public.key');
+        $privateKey = Passport::keyPath('oauth-private.key');
+        $existed = is_file($publicKey) && is_file($privateKey);
+
+        if (! $existed) {
+            if (is_file($publicKey) || is_file($privateKey)) {
+                throw new RuntimeException('Only one of the two OAuth key files exists in storage/. Remove it and run this task again.');
+            }
+
+            $key = RSA::createKey(4096);
+            file_put_contents($publicKey, (string) $key->getPublicKey());
+            file_put_contents($privateKey, (string) $key);
+        }
+
+        // Best effort: shared hosts may refuse chmod; the permission check is
+        // switched off in AppServiceProvider for that reason.
+        @chmod($privateKey, 0600);
+        @chmod($publicKey, 0660);
+
+        return $existed ? 'The OAuth keys already exist; nothing was changed.' : 'OAuth keys created.';
     }
 
     /**

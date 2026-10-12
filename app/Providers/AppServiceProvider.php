@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Laravel\Passport\Passport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -38,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureDefaults();
         $this->configureModels();
         $this->configurePermissions();
+        $this->configurePassport();
     }
 
     /**
@@ -85,5 +87,21 @@ class AppServiceProvider extends ServiceProvider
         foreach (Permission::cases() as $permission) {
             Gate::define($permission->value, fn (User $user): bool => $user->hasPermission($permission));
         }
+    }
+
+    /**
+     * Passport issues the bearer tokens of the MCP server: personal tokens from
+     * Settings -> AI access and OAuth tokens for Claude / ChatGPT connectors.
+     */
+    protected function configurePassport(): void
+    {
+        // Shared hosting may refuse chmod on the key files.
+        Passport::$validateKeyPermissions = false;
+        Passport::authorizationView('mcp.authorize');
+        // Connectors renew access tokens with the refresh token on their own; a
+        // connector unused for six months has to be authorized again.
+        Passport::tokensExpireIn(now()->addDay());
+        Passport::refreshTokensExpireIn(now()->addMonths(6));
+        Passport::personalAccessTokensExpireIn(now()->addYear());
     }
 }

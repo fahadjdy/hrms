@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Settings\McpAccessController;
 use App\Http\Controllers\Settings\ProfileController;
 use App\Http\Controllers\Settings\ProfilePhotoController;
 use App\Http\Controllers\Settings\SecurityController;
@@ -26,6 +27,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('user-password.update');
 
     Route::inertia('settings/appearance', 'settings/Appearance')->name('appearance.edit');
+
+    // AI access (MCP). Personal to the signed-in user; the MCP layer keeps
+    // agents away from every `mcp-access.*` route.
+    Route::get('settings/ai-access', [McpAccessController::class, 'edit'])
+        ->middleware(RequirePassword::class)
+        ->name('mcp-access.edit');
+    Route::post('settings/ai-access', [McpAccessController::class, 'store'])
+        ->middleware([RequirePassword::class, 'throttle:10,1'])
+        ->name('mcp-access.store');
+    Route::delete('settings/ai-access/{token}', [McpAccessController::class, 'destroy'])->name('mcp-access.destroy');
 });
 
 Route::get('.well-known/passkey-endpoints', function () {
