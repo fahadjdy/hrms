@@ -56,7 +56,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prependToPriorityList(SubstituteBindings::class, EnsureTenant::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // MCP clients often send `Accept: */*`; a missing token must still be a
+        // 401 with the WWW-Authenticate challenge (it starts OAuth discovery),
+        // not a redirect to the login page.
         $exceptions->shouldRenderJsonWhen(
-            fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
+            fn (Request $request) => $request->is('api/*', 'mcp', 'mcp/*') || $request->expectsJson(),
         );
     })->create();

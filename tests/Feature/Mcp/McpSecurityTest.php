@@ -28,6 +28,17 @@ class McpSecurityTest extends TestCase
         $this->company = $this->useCompany($this->createCompany(['name' => 'Company A']));
     }
 
+    public function test_a_missing_token_is_a_401_challenge_even_when_the_client_accepts_anything(): void
+    {
+        $response = $this->call('POST', '/mcp', [], [], [], [
+            'HTTP_ACCEPT' => '*/*',
+            'CONTENT_TYPE' => 'application/json',
+        ], (string) json_encode($this->rpc('initialize', ['protocolVersion' => '2025-06-18', 'capabilities' => [], 'clientInfo' => ['name' => 'test', 'version' => '1']])));
+
+        $response->assertUnauthorized();
+        $this->assertStringContainsString('resource_metadata=', (string) $response->headers->get('WWW-Authenticate'));
+    }
+
     public function test_a_token_stops_working_when_the_user_is_deactivated(): void
     {
         $admin = $this->adminOf($this->company);
