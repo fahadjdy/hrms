@@ -243,7 +243,7 @@ return [
         'name' => 'create_salary_revision',
         'route' => 'employees.salary.store',
         'title' => 'Revise employee salary',
-        'description' => 'Record a new salary revision for an employee, effective from a date. History is append-only: every salary change is a new revision with the full component list (send all components, not just the changed ones; call get_employee_salary for the current ones). Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
+        'description' => 'Record a new salary revision for an employee, effective from a date. A salary change is normally a new revision (use update_salary_revision only to correct an existing one), always with the full component list (send all components, not just the changed ones; call get_employee_salary for the current ones). Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
         'read_only' => false,
         'destructive' => false,
         'params' => [
@@ -257,6 +257,36 @@ return [
                 'type' => 'array',
                 'required' => true,
                 'description' => 'Salary components, 1-30 items.',
+                'items' => [
+                    'type' => 'object',
+                    'properties' => [
+                        'name' => ['type' => 'string', 'required' => true, 'description' => 'Component name, max 100 chars (e.g. "Basic", "HRA").'],
+                        'type' => ['type' => 'string', 'required' => true, 'enum' => ['earning', 'deduction'], 'description' => 'earning or deduction.'],
+                        'amount' => ['type' => 'number', 'required' => true, 'description' => 'Monthly amount in company currency, >= 0.'],
+                    ],
+                ],
+            ],
+        ],
+    ],
+    [
+        'name' => 'update_salary_revision',
+        'route' => 'employees.salary.update',
+        'title' => 'Edit a salary revision',
+        'description' => 'Correct an existing salary revision of an employee (effective date, components, reason, notes). Send the full revision: every component (call get_employee_salary for the current values and the revision id), the effective date and the reason. Refused when a finalized payroll already paid with this salary (reopen_payroll first); a draft payroll covering the change must be recalculated afterwards (calculate_payroll), and the flash message says which. The edit is recorded in the audit log, and the "previous gross" of neighbouring revisions is recomputed. Gross is the sum of the earning components; components at 0 are dropped and at least one earning must be above 0. Only one revision per employee per effective date. Requires permission payroll.manage.',
+        'read_only' => false,
+        'destructive' => false,
+        'params' => [
+            'employee' => $employeeParam,
+            'revision' => ['type' => 'integer', 'description' => 'Salary revision id (revisions[].id from get_employee_salary).'],
+        ],
+        'fields' => [
+            'effective_date' => ['type' => 'string', 'required' => true, 'description' => 'YYYY-MM-DD; cannot be before the employee\'s joining date.'],
+            'reason' => ['type' => 'string', 'description' => 'Reason, max 255 chars; omitted or null clears it.'],
+            'notes' => ['type' => 'string', 'description' => 'Notes, max 2000 chars; omitted or null clears them.'],
+            'components' => [
+                'type' => 'array',
+                'required' => true,
+                'description' => 'All salary components of this revision (replaces the old ones), 1-30 items.',
                 'items' => [
                     'type' => 'object',
                     'properties' => [

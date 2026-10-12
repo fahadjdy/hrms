@@ -164,6 +164,9 @@ Route::middleware('can:payroll.manage')->group(function () {
         ->scopeBindings()
         ->name('payroll.items.adjustments.destroy');
     Route::post('employees/{employee}/salary', [SalaryController::class, 'store'])->name('employees.salary.store');
+    Route::put('employees/{employee}/salary/{revision}', [SalaryController::class, 'update'])
+        ->scopeBindings()
+        ->name('employees.salary.update');
 });
 
 Route::middleware('can:payroll.finalize')->group(function () {

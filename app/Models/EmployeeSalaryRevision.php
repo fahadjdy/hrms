@@ -11,8 +11,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * One row per salary change. Revisions are append-only: a salary is never
- * edited in place, a new revision is added instead.
+ * One row per salary change. A salary change adds a new revision; an existing
+ * revision is only edited through `SalaryRevisionService::update()`, which is
+ * audited and refused once a finalized payroll used it.
  *
  * @property int $id
  * @property int $company_id

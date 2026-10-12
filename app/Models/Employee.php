@@ -235,6 +235,17 @@ class Employee extends Model
     }
 
     /**
+     * Relation used by scoped route bindings: `employees/{employee}/salary/{revision}`
+     * resolves the revision through `salaryRevisions`, so another employee's revision is a 404.
+     *
+     * @param  string  $childType
+     */
+    protected function childRouteBindingRelationshipName($childType): string
+    {
+        return $childType === 'revision' ? 'salaryRevisions' : parent::childRouteBindingRelationshipName($childType);
+    }
+
+    /**
      * @return HasMany<EmployeeBorrow, $this>
      */
     public function borrows(): HasMany

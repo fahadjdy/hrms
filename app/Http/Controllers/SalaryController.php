@@ -6,9 +6,11 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\EmployeeSalaryComponent;
 use App\Models\EmployeeSalaryRevision;
+use App\Models\Payroll;
 use App\Services\SalaryRevisionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,6 +60,7 @@ class SalaryController extends Controller
     {
         $employee->load(['department:id,name', 'designation:id,name', 'salaryRevisions' => fn ($query) => $query->with(['components', 'creator:id,name'])]);
         $current = $salaries->revisionOn($employee, $this->tenant()->today());
+        $finalizedPayrolls = $salaries->finalizedPayrolls($employee);
 
         return Inertia::render('payroll/EmployeeSalary', [
             'employee' => [
@@ -68,20 +71,69 @@ class SalaryController extends Controller
             'revisions' => $salaries->revisions($employee)
                 ->reverse()
                 ->values()
-                ->map(fn (EmployeeSalaryRevision $revision): array => [
-                    ...$this->present($revision),
-                    'is_current' => $current?->id === $revision->id,
-                    'is_upcoming' => $revision->effective_date->gt($this->tenant()->today()),
-                ]),
+                ->map(function (EmployeeSalaryRevision $revision) use ($current, $salaries, $finalizedPayrolls): array {
+                    $lockedReason = $salaries->lockedReason($revision->effective_date, $finalizedPayrolls);
+
+                    return [
+                        ...$this->present($revision),
+                        'is_current' => $current?->id === $revision->id,
+                        'is_upcoming' => $revision->effective_date->gt($this->tenant()->today()),
+                        'is_locked' => $lockedReason !== null,
+                        'locked_reason' => $lockedReason,
+                    ];
+                }),
             'today' => $this->tenant()->today()->toDateString(),
         ]);
     }
 
     /**
-     * Add a salary revision. Existing revisions are never changed.
+     * Add a salary revision.
      */
     public function store(Request $request, Employee $employee, SalaryRevisionService $salaries): RedirectResponse
     {
+        $validated = $this->validateRevision($request, $employee);
+
+        $salaries->revise($employee, $validated, $request->user());
+
+        $this->toast('Salary revision saved.');
+
+        return back();
+    }
+
+    /**
+     * Edit a salary revision. Refused once a finalized payroll used it; payrolls
+     * still open for the affected dates need recalculating, which the toast says.
+     */
+    public function update(Request $request, Employee $employee, EmployeeSalaryRevision $revision, SalaryRevisionService $salaries): RedirectResponse
+    {
+        $validated = $this->validateRevision($request, $employee);
+
+        $revision->setRelation('employee', $employee);
+        $result = $salaries->update($revision, $validated, $request->user());
+
+        $months = $result['pending_payrolls']->map(fn (Payroll $payroll): string => $payroll->label())->values()->all();
+
+        if ($months === []) {
+            $this->toast('Salary revision updated.');
+        } else {
+            $this->toast(
+                'Salary revision updated. Recalculate the '.(count($months) === 1 ? 'payroll' : 'payrolls')
+                    .' for '.Arr::join($months, ', ', ' and ').' to apply it.',
+                'warning',
+            );
+        }
+
+        return back();
+    }
+
+    /**
+     * Rules shared by adding and editing a revision.
+     *
+     * @return array{effective_date: string, reason?: string|null, notes?: string|null, components: list<array{name: string, type: string, amount: float|int|string}>}
+     */
+    private function validateRevision(Request $request, Employee $employee): array
+    {
+        /** @var array{effective_date: string, reason?: string|null, notes?: string|null, components: list<array{name: string, type: string, amount: float|int|string}>} $validated */
         $validated = $request->validate([
             'effective_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$employee->joining_date->toDateString()],
             'reason' => ['nullable', 'string', 'max:255'],
@@ -97,11 +149,7 @@ class SalaryController extends Controller
             'components.*.amount' => 'component amount',
         ]);
 
-        $salaries->revise($employee, $validated, $request->user());
-
-        $this->toast('Salary revision saved.');
-
-        return back();
+        return $validated;
     }
 
     /**

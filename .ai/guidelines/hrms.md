@@ -18,7 +18,7 @@ Activate the `hrms-architecture` skill before changing tenancy, attendance, sala
 
 - Controllers only validate, authorize, call a service and respond. Calculations live in `app/Services`; nothing is calculated in Vue.
 - Money: `DECIMAL(…, 2)` columns, rounded per line with `App\Support\Money`. Time worked: integer minutes.
-- History is append-only: salary revisions, borrow transactions, attendance logs and audit logs are never edited or deleted. A salary change is a new `EmployeeSalaryRevision`.
+- History is append-only: borrow transactions, attendance logs and audit logs are never edited or deleted. A salary change is a new `EmployeeSalaryRevision`; the one exception is `SalaryRevisionService::update()` (admins correcting a revision), which is audited and refused once a finalized payroll used that salary. Revisions are never deleted.
 - A finalized payroll is locked; changes go through `PayrollService::reopen()` with a reason.
 - Call `App\Services\AuditLogger` for every change the spec lists as auditable.
 - Employees are never deleted. Leaving the company is `EmployeeService::exit()`.

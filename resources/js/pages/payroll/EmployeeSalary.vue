@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, setLayoutProps, useForm } from '@inertiajs/vue3';
-import { ArrowRight, History, TrendingUp } from '@lucide/vue';
+import { ArrowRight, History, Lock, Pencil, TrendingUp } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import AlertError from '@/components/AlertError.vue';
 import DatePicker from '@/components/DatePicker.vue';
 import EmployeeCell from '@/components/EmployeeCell.vue';
 import EmptyState from '@/components/EmptyState.vue';
@@ -26,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useFormat } from '@/composables/useFormat';
 import { usePermissions } from '@/composables/usePermissions';
 import { show as employeeShow } from '@/routes/employees';
-import { show, store } from '@/routes/employees/salary';
+import { show, store, update } from '@/routes/employees/salary';
 import { index as salaryIndex } from '@/routes/salary';
 import type { BreadcrumbItem, EmployeeBrief } from '@/types';
 
@@ -53,6 +54,8 @@ type Revision = {
 type HistoryRevision = Revision & {
     is_current: boolean;
     is_upcoming: boolean;
+    is_locked: boolean;
+    locked_reason: string | null;
 };
 
 const props = defineProps<{
@@ -87,6 +90,8 @@ const upcoming = computed(() =>
 );
 
 const open = ref(false);
+/** The revision being corrected, or null when a new revision is being added. */
+const editing = ref<HistoryRevision | null>(null);
 const form = useForm({
     effective_date: props.today,
     reason: '',
@@ -115,17 +120,50 @@ function startRevision(): void {
               amount: component.amount,
           }))
         : blankStructure();
+    editing.value = null;
+    form.clearErrors();
+    open.value = true;
+}
+
+function startEdit(revision: HistoryRevision): void {
+    if (revision.is_locked) {
+        return;
+    }
+
+    form.effective_date = revision.effective_date;
+    form.reason = revision.reason ?? '';
+    form.notes = revision.notes ?? '';
+    form.components = revision.components.map((component) => ({
+        name: component.name,
+        type: component.type === 'deduction' ? 'deduction' : 'earning',
+        amount: component.amount,
+    }));
+    editing.value = revision;
     form.clearErrors();
     open.value = true;
 }
 
 function submit(): void {
-    form.post(store.url(props.employee.id), {
+    const options = {
         preserveScroll: true,
         onSuccess: () => {
             open.value = false;
         },
-    });
+    };
+
+    if (editing.value) {
+        form.put(
+            update.url({
+                employee: props.employee.id,
+                revision: editing.value.id,
+            }),
+            options,
+        );
+
+        return;
+    }
+
+    form.post(store.url(props.employee.id), options);
 }
 
 const errors = computed(
@@ -147,7 +185,7 @@ const changePercent = (revision: Revision): string | null =>
     <div class="flex flex-col gap-5 p-4 sm:p-6">
         <PageHeader
             title="Salary"
-            description="The salary in effect today and every change made to it. A revision adds to the history; earlier revisions are never edited or overwritten, and payroll always uses the salary that was in effect for the pay period."
+            description="The salary in effect today and every change made to it. A revision adds to the history, and payroll always uses the salary that was in effect for the pay period. A revision can be corrected until a finalized payroll has used it; every correction is audited."
         >
             <Button v-if="canManage" @click="startRevision">
                 <TrendingUp />
@@ -310,7 +348,7 @@ const changePercent = (revision: Revision): string | null =>
 
             <SectionCard
                 title="Revision history"
-                description="Newest first. Nothing here can be edited or removed."
+                description="Newest first. Revisions used by a finalized payroll are locked."
             >
                 <EmptyState
                     v-if="revisions.length === 0"
@@ -351,7 +389,45 @@ const changePercent = (revision: Revision): string | null =>
                             >
                                 Upcoming
                             </StatusBadge>
+                            <Button
+                                v-if="canManage"
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                class="ml-auto h-7 px-2"
+                                :disabled="revision.is_locked"
+                                :aria-label="`Edit revision effective ${date(revision.effective_date)}`"
+                                :aria-describedby="
+                                    revision.is_locked
+                                        ? `revision-${revision.id}-locked`
+                                        : undefined
+                                "
+                                :title="
+                                    revision.is_locked
+                                        ? (revision.locked_reason ?? undefined)
+                                        : undefined
+                                "
+                                @click="startEdit(revision)"
+                            >
+                                <Lock v-if="revision.is_locked" />
+                                <Pencil v-else />
+                                Edit
+                            </Button>
                         </div>
+                        <p
+                            v-if="canManage && revision.is_locked"
+                            :id="`revision-${revision.id}-locked`"
+                            class="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground"
+                        >
+                            <Lock
+                                class="mt-0.5 size-3 shrink-0"
+                                aria-hidden="true"
+                            />
+                            {{
+                                revision.locked_reason ??
+                                'Locked: a finalized payroll used this revision.'
+                            }}
+                        </p>
 
                         <p
                             class="tabular mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
@@ -485,16 +561,32 @@ const changePercent = (revision: Revision): string | null =>
         <DialogContent class="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
             <form class="grid gap-5" @submit.prevent="submit">
                 <DialogHeader>
-                    <DialogTitle>
+                    <DialogTitle v-if="editing">
+                        Edit salary revision
+                    </DialogTitle>
+                    <DialogTitle v-else>
                         {{ current ? 'Revise salary' : 'Set salary' }} for
                         {{ employee.name }}
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription v-if="editing">
+                        Corrects the revision effective
+                        {{ date(editing.effective_date) }} for
+                        {{ employee.name }}. The change is recorded in the audit
+                        log, and any draft payroll covering this period needs to
+                        be recalculated afterwards.
+                    </DialogDescription>
+                    <DialogDescription v-else>
                         This adds a new revision from the effective date. The
                         existing history stays exactly as it is, and payrolls
                         for earlier periods keep using the earlier salary.
                     </DialogDescription>
                 </DialogHeader>
+
+                <AlertError
+                    v-if="errors.revision"
+                    :errors="[errors.revision]"
+                    title="This revision cannot be edited"
+                />
 
                 <div class="grid gap-4 sm:grid-cols-2">
                     <FormField
@@ -559,7 +651,7 @@ const changePercent = (revision: Revision): string | null =>
                     </Button>
                     <Button type="submit" :disabled="form.processing">
                         <Spinner v-if="form.processing" />
-                        Save revision
+                        {{ editing ? 'Save changes' : 'Save revision' }}
                     </Button>
                 </DialogFooter>
             </form>

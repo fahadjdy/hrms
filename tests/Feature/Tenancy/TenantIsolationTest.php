@@ -9,6 +9,7 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeDocument;
+use App\Models\EmployeeSalaryRevision;
 use App\Models\Overtime;
 use App\Models\Payroll;
 use App\Models\PayrollItem;
@@ -108,10 +109,15 @@ class TenantIsolationTest extends TestCase
         $this->get("/borrows/{$borrow->id}")->assertNotFound();
         $this->post("/borrows/{$borrow->id}/recoveries", ['amount' => 100, 'date' => '2026-09-30'])->assertNotFound();
         $this->get("/salary-slips/{$slip->id}")->assertNotFound();
+        $revisionB = EmployeeSalaryRevision::withoutTenancy()->where('employee_id', $this->employeeB->id)->sole();
+        $this->put("/employees/{$this->employeeB->id}/salary/{$revisionB->id}", [
+            'effective_date' => '2026-01-01', 'components' => [['name' => 'Basic', 'type' => 'earning', 'amount' => 99000]],
+        ])->assertNotFound();
         $this->get("/documents/{$document->id}")->assertNotFound();
 
         $this->assertSame('finalized', Payroll::withoutTenancy()->find($payroll->id)->status->value);
         $this->assertDatabaseHas('employee_borrows', ['id' => $borrow->id, 'outstanding_amount' => 5000]);
+        $this->assertSame(26000.0, EmployeeSalaryRevision::withoutTenancy()->findOrFail($revisionB->id)->new_gross);
     }
 
     public function test_payroll_item_of_the_same_company_is_not_found_under_another_payroll(): void
@@ -128,6 +134,21 @@ class TenantIsolationTest extends TestCase
             ->get("/payroll/{$august->id}/items/{$septemberItem->id}");
 
         $response->assertNotFound();
+    }
+
+    public function test_another_companys_salary_revision_is_not_found_under_an_own_employee(): void
+    {
+        $this->createTwoCompanies();
+        $this->useCompany($this->companyA);
+        $employeeA = $this->createEmployee(['joining_date' => '2026-01-01'], 30000);
+        $revisionB = EmployeeSalaryRevision::withoutTenancy()->where('employee_id', $this->employeeB->id)->sole();
+
+        $response = $this->actingAs($this->adminOf($this->companyA))->put("/employees/{$employeeA->id}/salary/{$revisionB->id}", [
+            'effective_date' => '2026-02-01', 'components' => [['name' => 'Basic', 'type' => 'earning', 'amount' => 99000]],
+        ]);
+
+        $response->assertNotFound();
+        $this->assertSame(26000.0, EmployeeSalaryRevision::withoutTenancy()->findOrFail($revisionB->id)->new_gross);
     }
 
     public function test_lists_only_show_the_signed_in_companys_employees(): void
