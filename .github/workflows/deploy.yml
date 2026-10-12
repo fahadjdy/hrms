@@ -114,7 +114,62 @@ jobs:
         run: sleep 60
 
       - name: Upload over FTPS (retry)
+        id: upload_retry
         if: steps.upload.outcome == 'failure'
+        continue-on-error: true
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          timeout: 120000
+          server: ftp.fahad-jadiya.com
+          username: fahadja2
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          # The folder the application lives in, relative to the FTP login
+          # directory. Override it with a repository variable named
+          # FTP_SERVER_DIR if the domain uses a different folder.
+          server-dir: ${{ vars.FTP_SERVER_DIR || './hrms.fahad-jadiya.com/' }}
+          # `.gitignore` placeholders are uploaded on purpose: they create the
+          # empty storage and cache folders Laravel needs on the server.
+          exclude: |
+            **/.git/**
+            .gitattributes
+            **/node_modules/**
+            vendor/**
+            .env
+            .env.*
+            .ai/**
+            .claude/**
+            .github/**
+            .mcp.json
+            CLAUDE.md
+            AGENTS.md
+            README.md
+            docs/**
+            boost.json
+            skills-lock.json
+            dev.bat
+            tests/**
+            phpunit.xml
+            phpstan.neon
+            pint.json
+            bootstrap/cache/*.php
+            public/hot
+            public/storage
+            resources/js/**
+            resources/css/**
+            storage/logs/*.log
+            storage/framework/views/*.php
+            database/*.sqlite
+
+      # The FTP server's flood protection can keep refusing for a few
+      # minutes after a failed connection, so the last try waits longer.
+      - name: Wait before the last upload attempt
+        if: steps.upload_retry.outcome == 'failure'
+        run: sleep 180
+
+      - name: Upload over FTPS (last attempt)
+        if: steps.upload_retry.outcome == 'failure'
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           timeout: 120000
